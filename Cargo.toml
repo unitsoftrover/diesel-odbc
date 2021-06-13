@@ -1,0 +1,52 @@
+[package]
+name = "diesel-example"
+version = "1.0.0"
+authors = [
+  "Nikolay Kim <fafhrd91@gmail.com>",
+  "Rob Ede <robjtede@icloud.com>",
+]
+edition = "2018"
+
+[[bin]]
+name = "test_odbc"
+path = "src/test_odbc.rs"
+doc = false
+
+[dependencies]
+byteorder = "1.0"
+bitflags = { version = "1.2.0", optional = false }
+chrono = { version = "0.4.1", optional = true }
+libc = { version = "0.2.0", optional = true }
+libsqlite3-sys = { version = ">=0.8.0, <0.21.0", optional = true, features = ["min_sqlite_version_3_7_16"] }
+mysqlclient-sys = { version = "0.2.0", optional = false }
+percent-encoding = { version = "2.1.0", optional = false }
+actix-web = "3"
+diesel = {path = "D:/Rust/diesel/diesel", features = ["mysql","sqlite","r2d2"] }
+dotenv = "0.15"
+env_logger = "0.7"
+failure = "0.1.8"
+futures = "0.3.1"
+r2d2 = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "0.8", features = ["serde", "v4"] }
+
+
+odbc-sys = {version="0.8.2", path="D:/Rust/web/odbc-sys-0.8.2"}
+odbc-safe = {version="0.5.0", path="D:/Rust/web/odbc-safe-0.5.0"}
+log = "0.4.1"
+encoding_rs = "0.8.14"
+doc-comment = "0.3.1"
+url = "1.7"
+lazy_static = "1.4.0"
+
+[dependencies.diesel_derives]
+version = "~2.0.0"
+path = "D:/Rust/diesel/diesel_derives"
+
+[dev-dependencies]
+chrono = "0.4"
+env_logger = "0.7"
+
+[features]
+default = ["diesel_derives/mysql"]
