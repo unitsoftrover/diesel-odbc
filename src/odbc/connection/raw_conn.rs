@@ -15,6 +15,7 @@ use odbc_safe::{AutocommitMode, AutocommitOn, AutocommitOff};
 use super::statement::*;
 use super::statement::StatementIterator;
 use super::super::backend::Mysql;
+use diesel::query_builder::bind_collector::RawBytesBindCollector;
 
 /// Represents a connection to an ODBC data source
 //#[derive(Debug)]
@@ -114,8 +115,7 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         //let env = create_environment_v3().expect("Can't create ODBC environment");
         //let conn = env.connect("PostgreSQL", "postgres", "postgres").unwrap();
         // let conn = RawConnection::<AutocommitOn>::new("localhost", "main", "unitsoft_main");
-        // let env = super::environment::create_environment_v3_with_os_db_encoding("GB18030","GB18030").map_err(|e| e.unwrap());
-
+        super::environment::set_environment_os_db_encoding("GB18030","GB18030");
         let conn = RawConnection::<AutocommitOn>::new(database_url);
 
         // let stmt = Statement::with_parent(&conn)?.prepare(
@@ -172,14 +172,20 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         // {
         //     panic!("no data.")
         // }
-        
-        let stmt = stmt.execute().unwrap();      
-        let mut metadata = Vec::new();
-        Mysql::row_metadata(&(), &mut metadata);
+
+        let mut types = Vec::new();
+        Mysql::row_metadata(&(), &mut types);
+        let metadata = stmt.metadata().unwrap();
+        let mut output_binds = super::statement::Binds::from_output_types(types, &metadata);
+        let stmt = stmt.execute_statement(&mut output_binds).unwrap();
+
+        // let stmt = stmt.execute().unwrap();      
 
         match stmt{
             ResultSetState::Data(mut stmt)=>{
-                let statement_use = StatementUse::new(&mut stmt, metadata);
+                let mut types = Vec::new();
+                Mysql::row_metadata(&(), &mut types);
+                let statement_use = StatementUse::new(&mut stmt, types);
                 let iter = StatementIterator::new(statement_use);
                 iter.collect::<QueryResult<Vec<U>>>()
             },
@@ -198,8 +204,15 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         T: QueryFragment<Self::Backend> + QueryId,
     {
         let stmt = self.prepare_query(source)?;       
-        let _ = stmt.execute();        
-        Ok(stmt.affected_row_count().unwrap() as usize)
+        let stmt = stmt.execute().unwrap();
+        match stmt{
+            ResultSetState::Data(stmt)=>{
+                Ok(stmt.affected_row_count().unwrap() as usize)
+            }
+            _ =>{Ok(0)}
+        }
+
+        // Ok(stmt.affected_row_count().unwrap() as usize)
     }
 
     #[doc(hidden)]
@@ -313,7 +326,8 @@ unsafe impl<'env, AC: AutocommitMode> safe::Handle for RawConnection<'env, AC> {
 }
 
 impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
-    fn prepare_query<T>(&self, source: &T) -> QueryResult<MaybeCached<super::statement::Statement<Prepared, NoResult, AC>>>
+    //fn prepare_query<T>(&self, source: &T) -> QueryResult<MaybeCached<super::statement::Statement<Prepared, NoResult, AC>>>
+    fn prepare_query<T>(&self, source: &T) -> QueryResult<super::statement::Statement<Prepared, NoResult, AC>>
     where
         T: QueryFragment<crate::odbc::Mysql> + QueryId,            
     {        
@@ -327,30 +341,34 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         //         //     ResultSetState::Data(stmt2)=>{Ok(stmt2)},
         //         //     ResultSetState::NoData(stmt2)=>{Err("no data")}
         //         // };
-        //     })?;
-                
-        let stmt = self
-            .statement_cache
-            .cached_statement(source, &[], |sql| {
-                let stmt1 = super::statement::Statement::with_parent(self).unwrap();                
-                let stmt1 = stmt1.prepare(sql).unwrap();       
-                Ok(stmt1)         
-            })?;
-
-        // let mut bind_collector = RawBytesBindCollector::new();
-        // source.collect_binds(&mut bind_collector, &())?;
-        // let binds = bind_collector
-        //     .metadata
-        //     .into_iter()
-        //     .zip(bind_collector.binds);
+        //     })?;                
         
-        // stmt.bind(binds)?;                
-        // let i = 0;
-        // let col_val = 0;
-        // for (tpe, value) in binds {
-        //     (*stmt).bind_col(i, &mut col_val);
-        //     i += 1;
-        // }
+        // let stmt = self
+        //     .statement_cache
+        //     .cached_statement(source, &[], |sql| {
+        //         let stmt1 = super::statement::Statement::with_parent(self).unwrap();                
+        //         println!("sql:{:?}", sql);
+        //         // let sql = "select CompanyID,CompanyCode,CompanyName from company where CompanyCode='O0000001'";
+        //         let stmt1 = stmt1.prepare(sql).unwrap();       
+        //         Ok(stmt1)         
+        //     })?; 
+
+        let stmt = super::statement::Statement::with_parent(self).unwrap();     
+        let mut query_builder = crate::odbc::MysqlQueryBuilder::new();
+        source.to_sql(&mut query_builder)?;
+        let sql = query_builder.finish();
+        println!("sql:{:?}", sql);
+        // let sql = "select CompanyID,CompanyCode,CompanyName from company where CompanyCode='O0000001'";
+        let mut stmt = stmt.prepare(sql.as_str()).unwrap();      
+
+        let mut bind_collector = RawBytesBindCollector::new();
+        source.collect_binds(&mut bind_collector, &())?;
+        let binds = bind_collector
+            .metadata
+            .into_iter()
+            .zip(bind_collector.binds);        
+        stmt.bind(binds)?;            
+
         Ok(stmt)       
     }
 

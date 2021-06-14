@@ -15,7 +15,7 @@ use std::marker::PhantomData;
 pub use self::types::OdbcType;
 pub use self::types::{SqlDate, SqlTime, SqlSsTime2, SqlTimestamp, EncodedValue};
 use super::environment;
-use bind::Binds;
+pub use bind::Binds;
 pub use statement_iterator::StatementIterator;
 use odbc_safe::{AutocommitMode, AutocommitOn};
 use diesel::result::QueryResult;
@@ -283,7 +283,7 @@ impl Raii<ffi::Stmt> {
 /// A `Statement` can be used to execute queries and retrieves results.
 pub struct Statement<S, R, AC: AutocommitMode> {
     //raii: ffi::SQLHSTMT,
-    pub raii: Rc<Raii<ffi::Stmt>>,
+    pub raii: Raii<ffi::Stmt>,
     state: PhantomData<S>,
     autocommit_mode: PhantomData<AC>,
     // Indicates wether there is an open result set or not associated with this statement.
@@ -317,7 +317,7 @@ impl<S, R, AC: AutocommitMode> Handle for Statement<S, R, AC> {
 }
 
 impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
-    pub fn with_raii(raii: Rc<Raii<ffi::Stmt>>) -> Self {
+    pub fn with_raii(raii: Raii<ffi::Stmt>) -> Self {
         Statement {            
             raii: raii,
             autocommit_mode: PhantomData,
@@ -576,18 +576,28 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
             r => panic!("SQLExecute returned unexpected result: {:?}", r),
         }
     }
+    
+    pub fn bind<Iter>(&mut self, binds: Iter) -> QueryResult<()>
+    where
+        Iter: IntoIterator<Item = (MysqlType, Option<Vec<u8>>)>,
+    {
+        let mut input_binds = Binds::from_input_data(binds)?;
+        input_binds.with_mysql_binds(|bind|{/*self.bind_parameter(0, &mut bind.bytes.as_mut_ptr())*/ });        
 
-    pub(super) fn execute_statement(&mut self, binds: &mut Binds) -> QueryResult<()> {        
-        let mut i = 0;
-        let _ = binds.data.iter_mut()
-        .map(|x| {               
-            let _ = self.bind_col1(i, &x.bytes, &mut (x.length as i64), &EncodedValue{buf : None});
-            i += 1;                            
-        });
-
-        let _ = self.execute1();        
-        Ok(())
+        Ok(())        
     }
+
+    // pub(super) fn execute_statement(&mut self, binds: &mut Binds) -> QueryResult<()> {        
+    //     let mut i = 1;
+    //     let _ = binds.data.iter_mut()
+    //     .map(|x| {               
+    //         let _ = self.bind_col1(i, &x.bytes, &mut (x.length as i64), &EncodedValue{buf : None});
+    //         i += 1;                            
+    //     });
+
+    //     let _ = self.execute1().into_result(self).unwrap();        
+    //     Ok(())
+    // }
     
     fn bind_input_parameter1<'c, T>(
         &mut self,
@@ -656,16 +666,12 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
         };
 
         match unsafe {
-            ffi::SQLBindParameter(
+            ffi::SQLBindCol(
                 self.handle(),
                 col_index,
-                ffi::SQL_PARAM_INPUT,
                 T::c_data_type(),
-                T::sql_data_type(),
-                column_size + 1,
-                value.decimal_digits(),
                 value_ptr,
-                0,                  // buffer length
+                column_size as i64 + 1,    // buffer length
                 str_len_or_ind_ptr, // Note that this ptr has to be valid until statement is executed
             )
         } {
@@ -757,7 +763,7 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
         use diesel::result::Error::DeserializationError;             
         
         let mut vec = Vec::new();       
-        for i in 0..=self.num_result_cols1().into_result(self).unwrap(){
+        for i in 1..=self.num_result_cols1().into_result(self).unwrap(){
             vec.push(self.describe_col1(i as u16).into_result(self).unwrap());
         }
 
@@ -769,7 +775,7 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
 impl<AC: AutocommitMode> Statement<Allocated, NoResult, AC> {
     pub fn with_parent(ds: &RawConnection<AC>) -> Result<Self> {
         let raii = Raii::with_parent(ds).into_result(ds)?; 
-        Ok(Self::with_raii(Rc::new(raii)))        
+        Ok(Self::with_raii(raii))        
     }
 
     pub fn affected_row_count(&self) -> Result<ffi::SQLLEN> {
@@ -786,7 +792,7 @@ impl<AC: AutocommitMode> Statement<Allocated, NoResult, AC> {
 
     pub fn tables_opt_str(mut self, catalog_name: Option<&str>, schema_name: Option<&str>, table_name:Option<&str>, table_type: &str) -> Result<Statement<Executed, HasResult, AC>> {
         self.tables1(catalog_name, schema_name, table_name, table_type).into_result(&self)?;
-        Ok(Statement::with_raii(self.raii.clone()))
+        Ok(Statement::with_raii(self.raii))
     }
     
     /// Executes a preparable statement, using the current values of the parameter marker variables
@@ -797,12 +803,12 @@ impl<AC: AutocommitMode> Statement<Allocated, NoResult, AC> {
         if self.exec_direct1(statement_text).into_result(&self)? {
             let num_cols = self.num_result_cols1().into_result(&self)?;
             if num_cols > 0 {
-                Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())))
+                Ok(ResultSetState::Data(Statement::with_raii(self.raii)))
             } else {
-                Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
+                Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
             }
         } else {
-            Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
+            Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
         }
     }
 
@@ -907,12 +913,12 @@ impl<'c, S, AC: AutocommitMode> Cursor<'c, S, AC> {
 }
 
 
-unsafe impl<C, P, AC: AutocommitMode> safe::Handle for Statement<C, P, AC> {
+unsafe impl<S, R, AC: AutocommitMode> safe::Handle for Statement<S, R, AC> {
 
     const HANDLE_TYPE : ffi::HandleType = ffi::SQL_HANDLE_STMT;
 
     fn handle(&self) -> ffi::SQLHANDLE {
-        safe::Handle::handle(&(*self.raii)) as ffi::SQLHANDLE      
+        safe::Handle::handle(&self.raii) as ffi::SQLHANDLE      
     }
 }
 
@@ -928,7 +934,7 @@ impl<'b, S> StatementUse<'b, S> {
     pub fn new(statement: &'b mut Statement<S, HasResult, AutocommitOn>, types: Vec<Option<MysqlType>>) -> Self {
         let metadata = statement.metadata().unwrap();
         let mut output_binds = Binds::from_output_types(types, &metadata);
-        statement.execute_statement(&mut output_binds).unwrap();
+        // statement.execute_statement(&mut output_binds).unwrap();
 
         StatementUse {
             statement,

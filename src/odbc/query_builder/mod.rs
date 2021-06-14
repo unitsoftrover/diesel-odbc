@@ -25,9 +25,9 @@ impl QueryBuilder<Mysql> for MysqlQueryBuilder {
     }
 
     fn push_identifier(&mut self, identifier: &str) -> QueryResult<()> {
-        self.push_sql("`");
-        self.push_sql(&identifier.replace("`", "``"));
-        self.push_sql("`");
+        self.push_sql("\"");
+        self.push_sql(&identifier.replace("\"", "\"\""));
+        self.push_sql("\"");
         Ok(())
     }
 

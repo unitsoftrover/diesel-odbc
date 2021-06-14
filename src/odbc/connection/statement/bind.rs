@@ -129,19 +129,19 @@ impl Binds {
         Binds { data }
     }
 
-    pub fn with_mysql_binds<F, T>(&mut self, f: F) -> T
+    pub fn with_mysql_binds<F, T>(&mut self, f: F)
     where
-        F: FnOnce(*mut MYSQL_BIND) -> T,
+        F: Fn(&mut BindData) -> T,
     {
         let mut binds = self
             .data
             .iter_mut()
             .map(|x| unsafe { 
-
-                x.mysql_bind()             
+                f(x);
+                x.mysql_bind()
             })
             .collect::<Vec<_>>();
-        f(binds.as_mut_ptr())
+
     }
 
     // pub fn populate_dynamic_buffers(&mut self, stmt: &Statement) -> QueryResult<()> {

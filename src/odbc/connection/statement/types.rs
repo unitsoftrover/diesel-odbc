@@ -197,6 +197,8 @@ unsafe impl<'a> OdbcType<'a> for String {
     }
 
     fn convert(buffer: &'a [u8]) -> Self {
+        unsafe{ println!("DB_ENCODING:{:?} OS_ENCODING:{:?}", environment::DB_ENCODING, environment::OS_ENCODING);}
+        
         unsafe { environment::DB_ENCODING }.decode(buffer).0.to_string()
     }
 

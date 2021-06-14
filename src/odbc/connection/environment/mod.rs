@@ -112,3 +112,10 @@ pub fn create_environment_v3_with_os_db_encoding(os_encoding: &str, db_encoding:
     Environment::new()
 }
 
+pub fn set_environment_os_db_encoding(os_encoding: &str, db_encoding: &str)
+{   
+    unsafe {
+        OS_ENCODING = encoding_rs::Encoding::for_label(os_encoding.as_bytes()).unwrap();
+        DB_ENCODING = encoding_rs::Encoding::for_label(db_encoding.as_bytes()).unwrap();
+    }  
+}

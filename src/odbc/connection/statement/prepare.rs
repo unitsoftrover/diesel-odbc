@@ -3,6 +3,8 @@ use super::{ColumnDescriptor, Statement, Result, Prepared, Allocated, NoResult, 
 use odbc_safe::AutocommitMode;
 use diesel::result::*;
 
+pub use super::types::{SqlDate, SqlTime, SqlSsTime2, SqlTimestamp, EncodedValue};
+
 impl<AC: AutocommitMode> Statement<Allocated, NoResult, AC> {
     /// Prepares a statement for execution. Executing a prepared statement is faster than directly
     /// executing an unprepared statement, since it is already compiled into an Access Plan. This
@@ -90,19 +92,48 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
     }
 
     /// Executes a prepared statement.
-    pub fn execute(&self) -> Result<ResultSetState<Prepared, AC>> {
-        if self.execute1().into_result(self)? {
-            let num_cols = self.num_result_cols1().into_result(self)?;
+    pub fn execute(self) -> Result<ResultSetState<Prepared, AC>> {
+        if self.execute1().into_result(&self)? {
+            let num_cols = self.num_result_cols1().into_result(&self)?;
             if num_cols > 0 {
-                Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())))
+                Ok(ResultSetState::Data(Statement::with_raii(self.raii)))
             } else {
-                Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
+                Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
             }
         } else {
-            Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
+            Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
+        }
+    }
+
+    pub fn execute_statement(mut self, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {       
+        let mut i = 1;
+        let _ = binds.data.iter_mut()
+        .map(|x| {               
+            let _ = self.bind_col1(i, &x.bytes, &mut (x.length as i64), &EncodedValue{buf : None});
+            i += 1;                            
+        });
+
+        if self.execute1().into_result(&self)? {
+            let num_cols = self.num_result_cols1().into_result(&self)?;
+            if num_cols > 0 {
+                Ok(ResultSetState::Data(Statement::with_raii(self.raii)))
+            } else {
+                Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
+            }
+        } else {
+            Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
         }
     }
 }
+
+// unsafe impl<AC: AutocommitMode> safe::Handle for Statement<Prepared, NoResult, AC> {
+
+//     const HANDLE_TYPE : ffi::HandleType = ffi::SQL_HANDLE_STMT;
+
+//     fn handle(&self) -> ffi::SQLHANDLE {
+//         safe::Handle::handle(&self.raii) as ffi::SQLHANDLE      
+//     }
+// }
 
 impl Raii<ffi::Stmt> {
     fn prepare(&self, sql_text: &str) -> Return<()> {

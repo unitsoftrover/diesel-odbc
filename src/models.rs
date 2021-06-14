@@ -12,3 +12,10 @@ pub struct User {
 pub struct NewUser {
     pub name: String,
 }
+
+#[derive(Debug, Clone,Queryable, Serialize, Deserialize)]
+pub struct Company {
+    pub CompanyID: i32,
+    pub CompanyCode: String,
+    pub CompanyName: String,
+}
