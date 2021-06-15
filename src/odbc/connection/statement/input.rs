@@ -65,6 +65,37 @@ impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
         Ok(self)
     }
 
+    pub fn bind_parameter1<'c, T>(
+        &mut self,
+        parameter_index: u16,
+        value: &'c T,
+    )
+    where
+        T: OdbcType<'c>,
+        T: ?Sized,
+        'b: 'c,
+    {
+        let ind = if value.value_ptr() == 0 as *const Self as ffi::SQLPOINTER {
+            ffi::SQL_NULL_DATA
+        } else {
+            value.column_size() as ffi::SQLLEN
+        };
+
+        let ind_ptr = self.param_ind_buffers.alloc(parameter_index as usize, ind);
+
+        //the result of value_ptr is changed per calling.
+        //binding and saving must have the same value.
+        let enc_value = value.encoded_value();
+
+        self.bind_input_parameter1(parameter_index, value, ind_ptr, &enc_value)
+            .into_result(self);
+
+        // save encoded value to avoid memory reuse.
+        if enc_value.has_value() {
+            self.encoded_values.push(enc_value);
+        };
+    }
+
     /// Releasing all parameter buffers set by `bind_parameter`. This method consumes the statement
     /// and returns a new one those lifetime is no longer limited by the buffers bound.
     pub fn reset_parameters(mut self) -> Result<Statement<S, R, AC>> {

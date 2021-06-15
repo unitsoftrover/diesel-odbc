@@ -292,6 +292,8 @@ pub struct Statement<S, R, AC: AutocommitMode> {
     param_ind_buffers: Chunks<ffi::SQLLEN>,
     // encoded values are saved to use its pointer.
     encoded_values: Vec<EncodedValue>,
+    input_binds: Option<Binds>,
+    input_id : i32,
 }
 
 /// Used to retrieve data from the fields of a query result
@@ -326,6 +328,8 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
             //parameters: PhantomData,
             param_ind_buffers: Chunks::new(),
             encoded_values: Vec::new(),
+            input_binds: None,
+            input_id : 0,
         }
     }
     
@@ -581,8 +585,15 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
     where
         Iter: IntoIterator<Item = (MysqlType, Option<Vec<u8>>)>,
     {
-        let mut input_binds = Binds::from_input_data(binds)?;
-        input_binds.with_mysql_binds(|bind|{/*self.bind_parameter(0, &mut bind.bytes.as_mut_ptr())*/ });        
+        self.input_id = 1;
+        let input_binds = Binds::from_input_data(binds)?;  
+        // input_binds.with_mysql_binds(|bind|{
+        //     // let i = i32::convert(bind.bytes.as_slice());            
+        //     self.bind_parameter1(1,  &self.input_id)
+        // }); 
+        let i = 1;
+        self.bind_parameter1(1,  &i);
+        self.input_binds = Some(input_binds);
 
         Ok(())        
     }
@@ -759,7 +770,7 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
         }
     }
 
-    pub(super) fn metadata(&self) -> QueryResult<StatementMetadata> {
+    pub fn metadata(&self) -> QueryResult<StatementMetadata> {
         use diesel::result::Error::DeserializationError;             
         
         let mut vec = Vec::new();       
@@ -954,12 +965,16 @@ impl<'b, S> StatementUse<'b, S> {
                 // let statement_mata = self.statement.metadata().unwrap();
                 // let types = Vec::new();
                 // let _output_binds = Binds::from_output_types(types, &statement_mata);
-
-                Ok(Some(MysqlRow {
-                    col_idx: 0,
-                    binds: &mut self.output_binds,
-                    metadata: &self.metadata,
-                }))                
+                if let Some(_) = _value{
+                    Ok(Some(MysqlRow {
+                        col_idx: 0,
+                        binds: &mut self.output_binds,
+                        metadata: &self.metadata,
+                    }))
+                }
+                else{
+                    Ok(None)
+                }                
             },
             Err(_e) => Err(diesel::result::Error::NotFound)
         }

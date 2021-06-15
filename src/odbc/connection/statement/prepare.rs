@@ -105,15 +105,16 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
         }
     }
 
-    pub fn execute_statement(mut self, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {       
+    pub fn execute_statement(mut self, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {                
         let mut i = 1;
         let _ = binds.data.iter_mut()
         .map(|x| {               
-            let _ = self.bind_col1(i, &x.bytes, &mut (x.length as i64), &EncodedValue{buf : None});
+            let _ = self.bind_col1(i, &x.bytes, &mut (x.length as i64), &EncodedValue::new(None));
             i += 1;                            
         });
 
-        if self.execute1().into_result(&self)? {
+        if self.execute1().into_result(&self)? {           
+
             let num_cols = self.num_result_cols1().into_result(&self)?;
             if num_cols > 0 {
                 Ok(ResultSetState::Data(Statement::with_raii(self.raii)))

@@ -32,7 +32,15 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let row = match self.stmt.step() {
-            Ok(row) => row,
+            Ok(row) => {
+                if let Some(row) = row{
+                    Some(row)
+                }
+                else{
+                    return None;
+                }
+
+            },
             Err(e) => return Some(Err(e)),
         };
         row.map(|row| T::build_from_row(&row).map_err(DeserializationError))

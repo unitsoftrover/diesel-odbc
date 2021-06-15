@@ -16,6 +16,8 @@ use super::statement::*;
 use super::statement::StatementIterator;
 use super::super::backend::Mysql;
 use diesel::query_builder::bind_collector::RawBytesBindCollector;
+use std::slice::from_raw_parts;
+use super::super::backend::*;
 
 /// Represents a connection to an ODBC data source
 //#[derive(Debug)]
@@ -158,7 +160,8 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         U: FromSqlRow<T::SqlType, Self::Backend>,
         Self::Backend: QueryMetadata<T::SqlType>,           
     {       
-        let stmt = self.prepare_query(&source.as_query())?; 
+        let query = source.as_query();
+        let mut stmt = self.prepare_query(&query)?; 
         // let success = stmt.execute_result().unwrap();       
         // if(success){
         //     let mut stmt = Statement::with_raii(stmt.raii) as Statement<safe::Prepared, super::statement::HasResult, safe::AutocommitOn>;
@@ -173,16 +176,61 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         //     panic!("no data.")
         // }
 
+        let mut bind_collector = RawBytesBindCollector::new();
+        query.collect_binds(&mut bind_collector, &())?;
+        let binds = bind_collector
+            .metadata
+            .into_iter()
+            .zip(bind_collector.binds);        
+        // stmt.bind(binds)?;    
+
+        let mut i = 1;
+        let mut input_binds = super::statement::Binds::from_input_data(binds)?;  
+        input_binds.data
+            .iter_mut()
+            .map(|bind| {                                    
+                    match bind.tpe{                        
+                        odbc_sys::SqlDataType::SQL_INTEGER=>{
+                            let para = unsafe { from_raw_parts(bind.bytes.as_ptr() as *const i32, 1) };
+                            stmt.bind_parameter1(i,  &para[0]);
+                        },
+                        odbc_sys::SqlDataType::SQL_VARCHAR | odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
+                        | odbc_sys::SqlDataType::SQL_CHAR | odbc_sys::SqlDataType::SQL_EXT_WCHAR
+                        =>{
+                            let para = unsafe { from_raw_parts(bind.bytes.as_ptr() as *const u8, bind.bytes.len()) };
+                            stmt.bind_parameter1(i,  &para);
+                        }                        
+                        _=>{
+                            let para = unsafe { from_raw_parts(bind.bytes.as_ptr() as *const i32, 1) };
+                            stmt.bind_parameter1(i,  &para[0]);
+                        }
+                    };             
+                    i += 1;
+            }) .collect::<Vec<_>>();
+
+        // input_binds.with_mysql_binds(|bind|{
+        //     // let i = i32::convert(bind.bytes.as_slice());            
+
+        //     let a = unsafe { from_raw_parts(bind.bytes.as_ptr() as *const i32, 1) };
+        //     stmt.bind_parameter1(1,  &a[0]);
+        // }); 
+
+        // let i = 1i32;
+        // let mut stmt = stmt.bind_parameter(1, &i).unwrap();
+
         let mut types = Vec::new();
         Mysql::row_metadata(&(), &mut types);
         let metadata = stmt.metadata().unwrap();
         let mut output_binds = super::statement::Binds::from_output_types(types, &metadata);
-        let stmt = stmt.execute_statement(&mut output_binds).unwrap();
-
-        // let stmt = stmt.execute().unwrap();      
-
+        let stmt = stmt.execute_statement(&mut output_binds).unwrap();        
         match stmt{
             ResultSetState::Data(mut stmt)=>{
+                while let Some(mut cursor) = stmt.fetch().unwrap(){                  
+                    if let Some(val) = cursor.get_data(1).unwrap() as Option<i64>{
+                        println!("CompanyID:{}", val);
+                    }
+                }
+
                 let mut types = Vec::new();
                 Mysql::row_metadata(&(), &mut types);
                 let statement_use = StatementUse::new(&mut stmt, types);
@@ -360,14 +408,17 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         println!("sql:{:?}", sql);
         // let sql = "select CompanyID,CompanyCode,CompanyName from company where CompanyCode='O0000001'";
         let mut stmt = stmt.prepare(sql.as_str()).unwrap();      
+        // // let stmt = stmt.bind_parameter(1, &1).unwrap();
+        // // let i = 1i32;
+        // // self.bind_parameter1(1,  &1);
 
-        let mut bind_collector = RawBytesBindCollector::new();
-        source.collect_binds(&mut bind_collector, &())?;
-        let binds = bind_collector
-            .metadata
-            .into_iter()
-            .zip(bind_collector.binds);        
-        stmt.bind(binds)?;            
+        // let mut bind_collector = RawBytesBindCollector::new();
+        // source.collect_binds(&mut bind_collector, &())?;
+        // let binds = bind_collector
+        //     .metadata
+        //     .into_iter()
+        //     .zip(bind_collector.binds);        
+        // // stmt.bind(binds)?;        
 
         Ok(stmt)       
     }

@@ -129,9 +129,9 @@ impl Binds {
         Binds { data }
     }
 
-    pub fn with_mysql_binds<F, T>(&mut self, f: F)
+    pub fn with_mysql_binds<F, T>(&mut self, mut f: F)
     where
-        F: Fn(&mut BindData) -> T,
+        F: FnMut(&mut BindData) -> T,
     {
         let mut binds = self
             .data
@@ -217,7 +217,7 @@ impl From<u32> for Flags {
 
 #[derive(Debug)]
 pub struct BindData {
-    tpe: odbc_sys::SqlDataType,
+    pub tpe: odbc_sys::SqlDataType,
     pub bytes: Vec<u8>,
     pub length: libc::c_ulong,
     flags: Flags,

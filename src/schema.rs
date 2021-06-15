@@ -8,7 +8,7 @@ table! {
 table! {    
     company (CompanyID) {
         CompanyID -> Integer,
-        CompanyCode -> Text,
-        CompanyName -> Text,
+        // CompanyCode -> Text,
+        // CompanyName -> Text,
     }
 }

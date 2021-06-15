@@ -16,6 +16,6 @@ pub struct NewUser {
 #[derive(Debug, Clone,Queryable, Serialize, Deserialize)]
 pub struct Company {
     pub CompanyID: i32,
-    pub CompanyCode: String,
-    pub CompanyName: String,
+    // pub CompanyCode: String,
+    // pub CompanyName: String,
 }
