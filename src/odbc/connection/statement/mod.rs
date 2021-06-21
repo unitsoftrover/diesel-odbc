@@ -21,8 +21,6 @@ use odbc_safe::{AutocommitMode, AutocommitOn};
 use diesel::result::QueryResult;
 use statement_iterator::MysqlRow;
 pub use metadata::*;
-use std::ptr::NonNull;
-use std::rc::Rc;
 
 // Allocate CHUNK_LEN elements at a time
 const CHUNK_LEN: usize = 64;
@@ -292,8 +290,7 @@ pub struct Statement<S, R, AC: AutocommitMode> {
     param_ind_buffers: Chunks<ffi::SQLLEN>,
     // encoded values are saved to use its pointer.
     encoded_values: Vec<EncodedValue>,
-    input_binds: Option<Binds>,
-    input_id : i32,
+    pub input_binds: Option<Binds>,
 }
 
 /// Used to retrieve data from the fields of a query result
@@ -329,7 +326,6 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
             param_ind_buffers: Chunks::new(),
             encoded_values: Vec::new(),
             input_binds: None,
-            input_id : 0,
         }
     }
     
@@ -383,6 +379,15 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
                     column_size: if column_size == 0 {
                         None
                     } else {
+                        let column_size = match data_type{
+                            ffi::SqlDataType::SQL_EXT_WCHAR | ffi::SqlDataType::SQL_EXT_WVARCHAR |ffi::SqlDataType::SQL_EXT_WLONGVARCHAR                            
+                            =>(column_size+1)*2,                            
+                            ffi::SqlDataType::SQL_CHAR | ffi::SqlDataType::SQL_VARCHAR |ffi::SqlDataType::SQL_EXT_LONGVARCHAR 
+                            =>column_size+1,
+                            ffi::SqlDataType::SQL_DECIMAL | ffi::SqlDataType::SQL_NUMERIC
+                            =>column_size+1,                            
+                            _=>column_size
+                        };
                         Some(column_size)
                     },
                     decimal_digits: if decimal_digits == 0 {
@@ -432,7 +437,6 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
         }
         
         match unsafe {
-            println!("handle:{:?}", self.handle());
 
             ffi::SQLExecDirect(
                 self.handle() as ffi::SQLHSTMT,
@@ -585,7 +589,6 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
     where
         Iter: IntoIterator<Item = (MysqlType, Option<Vec<u8>>)>,
     {
-        self.input_id = 1;
         let input_binds = Binds::from_input_data(binds)?;  
         // input_binds.with_mysql_binds(|bind|{
         //     // let i = i32::convert(bind.bytes.as_slice());            
@@ -663,7 +666,7 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
         col_index: u16,
         value: &'c T,
         str_len_or_ind_ptr: *mut ffi::SQLLEN,
-        enc_value: &EncodedValue,
+        enc_value: EncodedValue,
     ) -> Return<()>
     where
         T: OdbcType<'c>,
@@ -673,8 +676,10 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
         let (column_size, value_ptr) = if enc_value.has_value() {
             (enc_value.column_size(), enc_value.value_ptr())
         } else {
-            (value.column_size(), value.value_ptr())
-        };
+            unsafe{
+                (*str_len_or_ind_ptr as u64, value.value_ptr())
+            }
+        };        
 
         match unsafe {
             ffi::SQLBindCol(
@@ -682,7 +687,46 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
                 col_index,
                 T::c_data_type(),
                 value_ptr,
-                column_size as i64 + 1,    // buffer length
+                column_size as i64,    // buffer length
+                str_len_or_ind_ptr, // Note that this ptr has to be valid until statement is executed
+            )
+        } {
+            ffi::SQL_SUCCESS => Return::Success(()),
+            ffi::SQL_SUCCESS_WITH_INFO => Return::SuccessWithInfo(()),
+            ffi::SQL_ERROR => Return::Error,
+            r => panic!("Unexpected return from SQLBindParameter: {:?}", r),
+        }
+    }
+
+    
+    fn bind_col2<'c, T>(
+        &mut self,
+        col_index: u16,
+        value: &'c T,
+        c_data_type:ffi::SqlCDataType,
+        str_len_or_ind_ptr: *mut ffi::SQLLEN,
+        enc_value: EncodedValue,
+    ) -> Return<()>
+    where
+        T: OdbcType<'c>,
+        T: ?Sized,
+    {
+        //if encoded value exists, use it.
+        let (column_size, value_ptr) = if enc_value.has_value() {
+            (enc_value.column_size(), enc_value.value_ptr())
+        } else {
+            unsafe{
+                (*str_len_or_ind_ptr as u64, value.value_ptr())
+            }
+        };        
+
+        match unsafe {
+            ffi::SQLBindCol(
+                self.handle(),
+                col_index,
+                c_data_type,
+                value_ptr,
+                column_size as i64,    // buffer length
                 str_len_or_ind_ptr, // Note that this ptr has to be valid until statement is executed
             )
         } {
@@ -778,7 +822,7 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
             vec.push(self.describe_col1(i as u16).into_result(self).unwrap());
         }
 
-        NonNull::new(&mut vec).map(StatementMetadata::new)
+        Some(vec).map(StatementMetadata::new)
            .ok_or_else(|| DeserializationError("No metadata exists".into()))
     }
 }
@@ -935,17 +979,17 @@ unsafe impl<S, R, AC: AutocommitMode> safe::Handle for Statement<S, R, AC> {
 
 pub struct StatementUse<'b, S> {
     statement: &'b mut Statement<S, HasResult, AutocommitOn>,
-    output_binds: Binds,
-    metadata: StatementMetadata,
+    output_binds: &'b mut Binds,
+    metadata: &'b StatementMetadata,
 }
 
 use super::super::backend::MysqlType;
 impl<'b, S> StatementUse<'b, S> {
 
-    pub fn new(statement: &'b mut Statement<S, HasResult, AutocommitOn>, types: Vec<Option<MysqlType>>) -> Self {
-        let metadata = statement.metadata().unwrap();
-        let mut output_binds = Binds::from_output_types(types, &metadata);
-        // statement.execute_statement(&mut output_binds).unwrap();
+    pub fn new(statement: &'b mut Statement<S, HasResult, AutocommitOn>, output_binds: &'b mut Binds, metadata:&'b StatementMetadata) -> Self {
+        // let metadata = statement.metadata().unwrap();
+        // let output_binds = Binds::from_output_types(types, &metadata);
+        // statement.execute_statement(&mut output_binds).unwrap();        
 
         StatementUse {
             statement,
@@ -958,14 +1002,25 @@ impl<'b, S> StatementUse<'b, S> {
     //     self.statement.run()
     // }
 
-    pub fn step(&mut self) -> QueryResult<Option<MysqlRow>> {
-        
+    pub fn step(&mut self) -> QueryResult<Option<MysqlRow>> {        
         match self.statement.fetch(){
             Ok(_value) => {
-                // let statement_mata = self.statement.metadata().unwrap();
-                // let types = Vec::new();
-                // let _output_binds = Binds::from_output_types(types, &statement_mata);
-                if let Some(_) = _value{
+                let fields = &self.metadata.fields();
+                let bind_datas = &mut self.output_binds.data;
+                for i in 0..bind_datas.len(){
+                    let bind = &mut bind_datas[i];
+                    let field = &fields[i];
+                    match field.data_type{
+                        ffi::SqlDataType::SQL_EXT_WCHAR | ffi::SqlDataType::SQL_EXT_WVARCHAR | ffi::SqlDataType::SQL_EXT_WLONGVARCHAR =>{
+                            let code_utf16 =  encoding_rs::UTF_16LE.decode(&bind.bytes).0;                               
+                            let bytes = (&code_utf16).as_bytes().to_vec();
+                            let _ = std::mem::replace(&mut bind.bytes, bytes);                               
+                        },                        
+                        _=>{}                        
+                    }                  
+                }
+
+                if let Some(mut _cur) = _value{
                     Ok(Some(MysqlRow {
                         col_idx: 0,
                         binds: &mut self.output_binds,

@@ -1,22 +1,23 @@
-use std::ptr::NonNull;
 use super::ColumnDescriptor;
 use std::ffi::CStr;
 use crate::odbc::connection::bind::Flags;
 use super::bind::*;
 
 pub struct StatementMetadata {
-    result: NonNull<Vec<ColumnDescriptor>>,
+    pub result: Vec<ColumnDescriptor>,
 }
 
 impl StatementMetadata {
-    pub fn new(result: NonNull<Vec<ColumnDescriptor>>) -> Self {
+    pub fn new(result: Vec<ColumnDescriptor>) -> Self {
         StatementMetadata { result }
     }
 
     pub fn fields(&'_ self) -> &'_ [ColumnDescriptor] {
-        unsafe{
-            self.result.as_ref()
-        }
+        self.result.as_ref()
+    }
+
+    pub fn len(&self)->usize{
+        return self.result.len()
     }
 }
 

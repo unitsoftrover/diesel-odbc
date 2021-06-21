@@ -9,7 +9,7 @@ extern crate diesel;
 extern crate odbc_sys;
 extern crate log;
 extern crate lazy_static;
-
+extern crate serde_derive;
 use odbc::connection::environment;
 pub use self::odbc_sys::*;
 
@@ -21,24 +21,9 @@ use diesel::connection::*;
 use odbc::connection::raw_conn::*;
 use odbc_safe as safe;
 use odbc::connection::statement::{Statement, ResultSetState};
-use odbc::utility::Utility;
-use schema::*;
 use models::*;
 use diesel::prelude::*;
-use diesel::deserialize::FromSqlRow;
-use diesel::expression::QueryMetadata;
-use diesel::query_builder::*;
-use diesel::result::*;
-use diesel::r2d2::R2D2Connection;
-
-use odbc_safe::{AutocommitMode, AutocommitOn, AutocommitOff};
-use odbc::connection::statement::*;
-use odbc::connection::statement::StatementIterator;
-use odbc::Mysql;
-use diesel::query_builder::bind_collector::RawBytesBindCollector;
-use diesel::expression::*;
-use odbc::types::*;
-
+// use self::odbc::types::*;
 
 fn main(){
     std::env::set_var("RUST_LOG", "actix_web=info");
@@ -53,8 +38,7 @@ fn main(){
     let conn = RawConnection::<safe::AutocommitOn>::establish(connspec).unwrap();
     {
         let stmt = Statement::with_parent(&conn).unwrap();
-        let mut stmt = stmt.prepare("select count(*) from company").unwrap();
-        // stmt.bind_parameter1(1, &1);
+        let stmt = stmt.prepare("select count(*) from company").unwrap();        
         let stmt = stmt.execute().unwrap();    
 
         match stmt{
@@ -77,11 +61,9 @@ fn main(){
     }
 
     {     
-
         let stmt = Statement::with_parent(&conn).unwrap();
         let stmt = stmt.prepare("select CompanyID,CompanyCode,CompanyName from company").unwrap();                   
         let stmt = stmt.execute().unwrap();       
-
         match stmt{
             ResultSetState::Data(mut st)=>{
                 while let Some(mut cursor) = st.fetch().unwrap(){                    
@@ -115,9 +97,11 @@ fn main(){
 
     println!("Displaying {} company", results.len());
     for company1 in results {
-        println!("{}", company1.CompanyID);
-        println!("-----------\n");
-        // println!("{}", company1.CompanyName);
+        println!("CompanyID:{}", company1.CompanyID);
+        println!("CompanyCode:{}", company1.CompanyCode);
+        println!("CompanyName:{}", company1.CompanyName);
+        println!("Create Date:{:?}", company1.DateCreated);
+        println!("Credit Amount:{}", company1.CreditAmount);
     }
     
 }

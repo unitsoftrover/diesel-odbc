@@ -365,6 +365,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
+name = "bigdecimal"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc403c26e6b03005522e6e8053384c4e881dfe5b2bf041c0c2c49be33d64a539"
+dependencies = [
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -526,12 +537,17 @@ dependencies = [
 name = "diesel"
 version = "2.0.0"
 dependencies = [
+ "bigdecimal",
  "bitflags",
  "byteorder",
+ "chrono",
  "diesel_derives",
  "itoa",
  "libsqlite3-sys",
  "mysqlclient-sys",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
  "percent-encoding 2.1.0",
  "r2d2",
  "url 2.2.2",
@@ -542,6 +558,7 @@ name = "diesel-example"
 version = "1.0.0"
 dependencies = [
  "actix-web",
+ "bigdecimal",
  "bitflags",
  "byteorder",
  "chrono",
@@ -558,11 +575,15 @@ dependencies = [
  "libsqlite3-sys",
  "log",
  "mysqlclient-sys",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
  "odbc-safe",
  "odbc-sys",
  "percent-encoding 2.1.0",
  "r2d2",
  "serde",
+ "serde_derive",
  "serde_json",
  "url 1.7.2",
  "uuid",
@@ -1166,6 +1187,17 @@ dependencies = [
  "cfg-if 0.1.10",
  "libc",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d0a3d5e207573f948a9e5376662aa743a2ea13f7c50a554d7af443a73fbfeba"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
 ]
 
 [[package]]

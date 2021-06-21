@@ -16,11 +16,11 @@ pub struct StatementIterator<'b, ST, T, S> {
 
 impl<'b, ST, T, S> StatementIterator<'b, ST, T, S> {
     pub fn new(stmt: StatementUse<'b, S>) -> Self {
-
-        StatementIterator {
+        let st = StatementIterator {
             stmt: stmt,
             _marker: PhantomData            
-        }
+        };
+        st
     }
 }
 

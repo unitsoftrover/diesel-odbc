@@ -11,11 +11,9 @@ impl Utility{
         let _msg = String::new();
         match cow {
             Cow::Borrowed(val) => {
-                // println!("error message:{:?}", val);
                 val.to_string()
             }
             Cow::Owned(val) => {
-                // println!("error message:{:?}", val);
                 val
             },
         }

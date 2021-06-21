@@ -4,7 +4,6 @@ use std::ops::Index;
 use std::os::raw as libc;
 
 use crate::odbc::connection::statement::StatementMetadata;
-use crate::odbc::types::MYSQL_TIME;
 use crate::odbc::{MysqlType, MysqlValue};
 use diesel::result::QueryResult;
 extern crate bitflags;
@@ -112,16 +111,17 @@ impl Binds {
         Ok(Binds { data })
     }
 
-    pub fn from_output_types(types: Vec<Option<MysqlType>>, metadata: &StatementMetadata) -> Self {
+    pub fn from_output_types(types: Vec<Option<MysqlType>>, metadata: &StatementMetadata) -> Self {       
+
         let data = metadata
             .fields()
             .iter()
             .zip(types.into_iter().chain(std::iter::repeat(None)))
-            .map(|(field, tpe)| {
+            .map(|(field, tpe)| {              
                 if let Some(tpe) = tpe {
-                    BindData::for_output(tpe.into())
+                    BindData::for_output(tpe.into(), field)
                 } else {
-                    BindData::for_output((field.data_type, Flags::NOT_NULL_FLAG))
+                    BindData::for_output((field.data_type, Flags::NOT_NULL_FLAG), field)
                 }
             })
             .collect();
@@ -133,7 +133,7 @@ impl Binds {
     where
         F: FnMut(&mut BindData) -> T,
     {
-        let mut binds = self
+        let _binds = self
             .data
             .iter_mut()
             .map(|x| unsafe { 
@@ -219,7 +219,7 @@ impl From<u32> for Flags {
 pub struct BindData {
     pub tpe: odbc_sys::SqlDataType,
     pub bytes: Vec<u8>,
-    pub length: libc::c_ulong,
+    pub length: super::ffi::SQLLEN,
     flags: Flags,
     is_null: ffi::my_bool,
     is_truncated: Option<ffi::my_bool>,
@@ -229,7 +229,7 @@ impl BindData {
     fn for_input((tpe, data): (MysqlType, Option<Vec<u8>>)) -> Self {
         let is_null = if data.is_none() { 1 } else { 0 };
         let bytes = data.unwrap_or_default();
-        let length = bytes.len() as libc::c_ulong;
+        let length = bytes.len() as super::ffi::SQLLEN;
         let (tpe, flags) = tpe.into();
         BindData {
             tpe,
@@ -241,11 +241,11 @@ impl BindData {
         }
     }
 
-    fn for_output((tpe, flags): (odbc_sys::SqlDataType, Flags)) -> Self {
+    fn for_output((tpe, flags): (odbc_sys::SqlDataType, Flags), field: &super::ColumnDescriptor) -> Self {
         let bytes = known_buffer_size_for_ffi_type(tpe)
             .map(|len| vec![0; len])
-            .unwrap_or_default();
-        let length = bytes.len() as libc::c_ulong;
+            .unwrap_or(vec![0; field.column_size.unwrap() as usize]);
+        let length = bytes.len() as super::ffi::SQLLEN;
 
         BindData {
             tpe,
@@ -290,7 +290,7 @@ impl BindData {
         bind.buffer_type = self.tpe;
         bind.buffer = self.bytes.as_mut_ptr() as *mut libc::c_void;
         bind.buffer_length = self.bytes.capacity() as libc::c_ulong;
-        bind.length = &mut self.length;
+        bind.length = &mut (self.length as u32);
         bind.is_null = &mut self.is_null;
         bind.is_unsigned = self.flags.contains(Flags::UNSIGNED_FLAG) as ffi::my_bool;
 
@@ -351,7 +351,7 @@ impl From<MysqlType> for (odbc_sys::SqlDataType, Flags) {
             MysqlType::Long => odbc_sys::SqlDataType::SQL_INTEGER,
             MysqlType::LongLong => odbc_sys::SqlDataType::SQL_INTEGER,
             MysqlType::Float => odbc_sys::SqlDataType::SQL_REAL,
-            MysqlType::Double => odbc_sys::SqlDataType::SQL_REAL,
+            MysqlType::Double => odbc_sys::SqlDataType::SQL_FLOAT,
             MysqlType::Time => odbc_sys::SqlDataType::SQL_DATETIME,
             MysqlType::Date => odbc_sys::SqlDataType::SQL_DATETIME,
             MysqlType::DateTime => odbc_sys::SqlDataType::SQL_DATETIME,
@@ -456,7 +456,9 @@ fn known_buffer_size_for_ffi_type(tpe: odbc_sys::SqlDataType) -> Option<usize> {
         t::SQL_CHAR => Some(1),        
         t::SQL_INTEGER => Some(4),
         t::SQL_DOUBLE => Some(8),
-        t::SQL_DATE | t::SQL_DATETIME => Some(size_of::<MYSQL_TIME>()),
+        t::SQL_DATETIME => Some(size_of::<super::ffi::SQL_TIMESTAMP_STRUCT>()),
+        t::SQL_DATE => Some(size_of::<super::ffi::SQL_DATE_STRUCT>()),
+        t::SQL_TIME => Some(size_of::<super::ffi::SQL_TIME_STRUCT>()),
         _ => None,
     }
 }

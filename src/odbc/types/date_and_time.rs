@@ -1,29 +1,27 @@
 use chrono::*;
-use mysqlclient_sys as ffi;
 use std::io::Write;
-use std::os::raw as libc;
 use std::{mem, slice};
 
-use super::MYSQL_TIME;
-use crate::deserialize::{self, FromSql};
+use crate::odbc::connection::ffi::SQL_TIMESTAMP_STRUCT;
+use diesel::deserialize::{self, FromSql};
 use crate::odbc::{Mysql, MysqlValue};
-use crate::serialize::{self, IsNull, Output, ToSql};
-use crate::sql_types::{Date, Datetime, Time, Timestamp};
+use diesel::serialize::{self, IsNull, Output, ToSql};
+use diesel::sql_types::{Date, Datetime, Time, Timestamp};
 
 macro_rules! mysql_time_impls {
     ($ty:ty) => {
-        impl ToSql<$ty, Mysql> for MYSQL_TIME {
+        impl ToSql<$ty, Mysql> for SQL_TIMESTAMP_STRUCT {
             fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
                 let bytes = unsafe {
-                    let bytes_ptr = self as *const MYSQL_TIME as *const u8;
-                    slice::from_raw_parts(bytes_ptr, mem::size_of::<MYSQL_TIME>())
+                    let bytes_ptr = self as *const SQL_TIMESTAMP_STRUCT as *const u8;
+                    slice::from_raw_parts(bytes_ptr, mem::size_of::<SQL_TIMESTAMP_STRUCT>())
                 };
                 out.write_all(bytes)?;
                 Ok(IsNull::No)
             }
         }
 
-        impl FromSql<$ty, Mysql> for MYSQL_TIME {
+        impl FromSql<$ty, Mysql> for SQL_TIMESTAMP_STRUCT {
             fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
                 value.time_value()
             }
@@ -50,26 +48,23 @@ impl FromSql<Datetime, Mysql> for NaiveDateTime {
 
 impl ToSql<Timestamp, Mysql> for NaiveDateTime {
     fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
-        let mysql_time = MYSQL_TIME {
-            year: self.year() as libc::c_uint,
-            month: self.month() as libc::c_uint,
-            day: self.day() as libc::c_uint,
-            hour: self.hour() as libc::c_uint,
-            minute: self.minute() as libc::c_uint,
-            second: self.second() as libc::c_uint,
-            second_part: libc::c_ulong::from(self.timestamp_subsec_micros()),
-            neg: false,
-            time_type: ffi::enum_mysql_timestamp_type::MYSQL_TIMESTAMP_DATETIME,
-            time_zone_displacement: 0,
+        let mysql_time = SQL_TIMESTAMP_STRUCT {
+            year: self.year() as i16,
+            month: self.month() as u16,
+            day: self.day() as u16,
+            hour: self.hour() as u16,
+            minute: self.minute() as u16,
+            second: self.second() as u16,
+            fraction: self.timestamp_subsec_micros(),            
         };
 
-        <MYSQL_TIME as ToSql<Timestamp, Mysql>>::to_sql(&mysql_time, out)
+        <SQL_TIMESTAMP_STRUCT as ToSql<Timestamp, Mysql>>::to_sql(&mysql_time, out)
     }
 }
 
 impl FromSql<Timestamp, Mysql> for NaiveDateTime {
     fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let mysql_time = <MYSQL_TIME as FromSql<Timestamp, Mysql>>::from_sql(bytes)?;
+        let mysql_time = <SQL_TIMESTAMP_STRUCT as FromSql<Timestamp, Mysql>>::from_sql(bytes)?;
 
         NaiveDate::from_ymd_opt(
             mysql_time.year as i32,
@@ -81,7 +76,7 @@ impl FromSql<Timestamp, Mysql> for NaiveDateTime {
                 mysql_time.hour as u32,
                 mysql_time.minute as u32,
                 mysql_time.second as u32,
-                mysql_time.second_part as u32,
+                mysql_time.fraction as u32,
             )
         })
         .ok_or_else(|| format!("Cannot parse this date: {:?}", mysql_time).into())
@@ -90,26 +85,23 @@ impl FromSql<Timestamp, Mysql> for NaiveDateTime {
 
 impl ToSql<Time, Mysql> for NaiveTime {
     fn to_sql<W: Write>(&self, out: &mut serialize::Output<W, Mysql>) -> serialize::Result {
-        let mysql_time = MYSQL_TIME {
-            hour: self.hour() as libc::c_uint,
-            minute: self.minute() as libc::c_uint,
-            second: self.second() as libc::c_uint,
+        let mysql_time = SQL_TIMESTAMP_STRUCT {
+            hour: self.hour() as u16,
+            minute: self.minute() as u16,
+            second: self.second() as u16,
             day: 0,
             month: 0,
-            second_part: 0,
+            fraction: 0,
             year: 0,
-            neg: false,
-            time_type: ffi::enum_mysql_timestamp_type::MYSQL_TIMESTAMP_TIME,
-            time_zone_displacement: 0,
         };
 
-        <MYSQL_TIME as ToSql<Time, Mysql>>::to_sql(&mysql_time, out)
+        <SQL_TIMESTAMP_STRUCT as ToSql<Time, Mysql>>::to_sql(&mysql_time, out)
     }
 }
 
 impl FromSql<Time, Mysql> for NaiveTime {
     fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let mysql_time = <MYSQL_TIME as FromSql<Time, Mysql>>::from_sql(bytes)?;
+        let mysql_time = <SQL_TIMESTAMP_STRUCT as FromSql<Time, Mysql>>::from_sql(bytes)?;
         NaiveTime::from_hms_opt(
             mysql_time.hour as u32,
             mysql_time.minute as u32,
@@ -121,26 +113,23 @@ impl FromSql<Time, Mysql> for NaiveTime {
 
 impl ToSql<Date, Mysql> for NaiveDate {
     fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
-        let mysql_time = MYSQL_TIME {
-            year: self.year() as libc::c_uint,
-            month: self.month() as libc::c_uint,
-            day: self.day() as libc::c_uint,
+        let mysql_time = SQL_TIMESTAMP_STRUCT {
+            year: self.year() as i16,
+            month: self.month() as u16,
+            day: self.day() as u16,
             hour: 0,
             minute: 0,
             second: 0,
-            second_part: 0,
-            neg: false,
-            time_type: ffi::enum_mysql_timestamp_type::MYSQL_TIMESTAMP_DATE,
-            time_zone_displacement: 0,
+            fraction: 0,
         };
 
-        <MYSQL_TIME as ToSql<Date, Mysql>>::to_sql(&mysql_time, out)
+        <SQL_TIMESTAMP_STRUCT as ToSql<Date, Mysql>>::to_sql(&mysql_time, out)
     }
 }
 
 impl FromSql<Date, Mysql> for NaiveDate {
     fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let mysql_time = <MYSQL_TIME as FromSql<Date, Mysql>>::from_sql(bytes)?;
+        let mysql_time = <SQL_TIMESTAMP_STRUCT as FromSql<Date, Mysql>>::from_sql(bytes)?;
         NaiveDate::from_ymd_opt(
             mysql_time.year as i32,
             mysql_time.month as u32,

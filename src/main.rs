@@ -9,6 +9,7 @@ extern crate diesel;
 extern crate odbc_sys;
 extern crate log;
 extern crate lazy_static;
+extern crate chrono;
 
 use log::*;
 use odbc::connection::environment;

@@ -105,13 +105,57 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
         }
     }
 
-    pub fn execute_statement(mut self, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {                
-        let mut i = 1;
-        let _ = binds.data.iter_mut()
-        .map(|x| {               
-            let _ = self.bind_col1(i, &x.bytes, &mut (x.length as i64), &EncodedValue::new(None));
-            i += 1;                            
-        });
+    pub fn execute_statement(mut self, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {
+        for i in 1..= binds.data.len() as u16 {
+            let bind = &mut binds.data[i as usize - 1];
+            match bind.tpe{
+                odbc_sys::SqlDataType::SQL_INTEGER=>{                   
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const i32;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
+                odbc_sys::SqlDataType::SQL_EXT_BIT=>{
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const bool;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },  
+                odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
+                =>{
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const f64;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
+                odbc_sys::SqlDataType::SQL_DECIMAL | odbc_sys::SqlDataType::SQL_NUMERIC
+                =>{
+                    let _ = self.bind_col2(i, &bind.bytes, ffi::SqlCDataType::SQL_C_NUMERIC,&mut bind.length, EncodedValue::new(None));                    
+                },
+                odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
+                | odbc_sys::SqlDataType::SQL_EXT_WCHAR
+                | odbc_sys::SqlDataType::SQL_EXT_WLONGVARCHAR
+                =>{                                                
+                    let _ = self.bind_col2(i, &bind.bytes, ffi::SqlCDataType::SQL_C_WCHAR,&mut bind.length, EncodedValue::new(None));                    
+                },
+                odbc_sys::SqlDataType::SQL_VARCHAR
+                | odbc_sys::SqlDataType::SQL_CHAR
+                | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR
+                =>{                                                           
+                    let _ = self.bind_col2(i, &bind.bytes, ffi::SqlCDataType::SQL_C_CHAR, &mut bind.length, EncodedValue::new(None));                    
+                },
+                odbc_sys::SqlDataType::SQL_DATE | odbc_sys::SqlDataType::SQL_DATETIME                                                
+                =>{
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const ffi::SQL_TIMESTAMP_STRUCT;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
+                _=>{
+                    // let _ = self.bind_col1(i, &bind.bytes, &mut (bind.length as i64), EncodedValue::new(None));
+                }
+            };                            
+        };
 
         if self.execute1().into_result(&self)? {           
 
@@ -127,14 +171,6 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
     }
 }
 
-// unsafe impl<AC: AutocommitMode> safe::Handle for Statement<Prepared, NoResult, AC> {
-
-//     const HANDLE_TYPE : ffi::HandleType = ffi::SQL_HANDLE_STMT;
-
-//     fn handle(&self) -> ffi::SQLHANDLE {
-//         safe::Handle::handle(&self.raii) as ffi::SQLHANDLE      
-//     }
-// }
 
 impl Raii<ffi::Stmt> {
     fn prepare(&self, sql_text: &str) -> Return<()> {

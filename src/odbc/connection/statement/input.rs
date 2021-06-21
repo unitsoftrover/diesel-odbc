@@ -88,7 +88,7 @@ impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
         let enc_value = value.encoded_value();
 
         self.bind_input_parameter1(parameter_index, value, ind_ptr, &enc_value)
-            .into_result(self);
+            .into_result(self).unwrap();
 
         // save encoded value to avoid memory reuse.
         if enc_value.has_value() {
@@ -128,7 +128,7 @@ impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
         //the result of value_ptr is changed per calling.
         //binding and saving must have the same value.
         let enc_value = value.encoded_value();        
-        let _ = self.bind_col1(column_number, value, ind_ptr, &enc_value);
+        let _ = self.bind_col1(column_number, value, ind_ptr, enc_value);
 
         Ok(self)
     }

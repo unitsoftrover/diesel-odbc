@@ -197,8 +197,6 @@ unsafe impl<'a> OdbcType<'a> for String {
     }
 
     fn convert(buffer: &'a [u8]) -> Self {
-        unsafe{ println!("DB_ENCODING:{:?} OS_ENCODING:{:?}", environment::DB_ENCODING, environment::OS_ENCODING);}
-        
         unsafe { environment::DB_ENCODING }.decode(buffer).0.to_string()
     }
 
@@ -207,7 +205,8 @@ unsafe impl<'a> OdbcType<'a> for String {
     }
 
     fn value_ptr(&self) -> ffi::SQLPOINTER {
-        unsafe { environment::DB_ENCODING }.encode(&self).0.as_ptr() as *const Self as ffi::SQLPOINTER
+        // unsafe { environment::DB_ENCODING }.encode(&self).0.as_ptr() as *const Self as ffi::SQLPOINTER
+        self as *const Self as ffi::SQLPOINTER
     }
 
     fn null_bytes_count() -> usize {

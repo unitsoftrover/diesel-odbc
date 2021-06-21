@@ -21,6 +21,19 @@ impl<T> Return<T> {
         match self {
             Return::Success(value) => Ok(value),
             Return::SuccessWithInfo(value) => {
+                let diag = odbc_object.get_diag_rec(1).unwrap_or_else(DiagnosticRecord::empty);                        
+                let utf8_error = diag.get_raw_message();              
+
+                let (cow, _encoding, _had_errors) = encoding_rs::GBK.decode(utf8_error); 
+                match cow {
+                    Cow::Borrowed(s) => {
+                        println!("error message:{:?}", s);
+                    }
+                    Cow::Owned(s) => {
+                        println!("error message:{:?}", s);  
+                    },
+                }
+                
                 let mut i = 1;
                 while let Some(diag) = odbc_object.get_diag_rec(i) {
                     warn!("{}", diag);
@@ -45,8 +58,6 @@ impl<T> Return<T> {
                     },
                 }
 
-                // let str_error = str::from_utf8(&utf8_error).unwrap();
-                // println!("error:{:?}", str_error);
                 error!("{:?}", msg);
                 let mut i = 2;
                 // log the rest

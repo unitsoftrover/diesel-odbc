@@ -8,7 +8,11 @@ table! {
 table! {    
     company (CompanyID) {
         CompanyID -> Integer,
-        // CompanyCode -> Text,
-        // CompanyName -> Text,
+        CompanyCode -> VarChar,       
+        CompanyName -> VarChar,
+        CompanyNameCN -> VarChar,
+        DateCreated -> Timestamp,
+        CreditAmount -> Decimal,
+        // IsHeadOffice -> Bool,
     }
 }

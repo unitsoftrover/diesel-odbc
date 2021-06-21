@@ -33,8 +33,6 @@ unsafe impl<T: OdbcObject> safe::Handle for Raii<T> {
 impl<T: OdbcObject> Drop for Raii<T> {
     fn drop(&mut self) {
 
-        println!("drop T::HANDLE_TYPE:{:?}", T::HANDLE_TYPE);
-
         match unsafe { ffi::SQLFreeHandle(T::HANDLE_TYPE, self.handle() as ffi::SQLHANDLE) } {
             ffi::SQL_SUCCESS => (),
             ffi::SQL_ERROR => {
@@ -50,12 +48,9 @@ impl<T: OdbcObject> Raii<T> {
     pub fn with_parent<P>(parent: &P) -> Return<Self>
     where
         P: Handle<To = T::Parent>,
-    {
-       
-
+    {      
         let mut handle: ffi::SQLHANDLE = null_mut();
         match unsafe {            
-            println!("HANDLE_TYPE:{:?} parent handle:{:?}", T::HANDLE_TYPE as i32, parent.handle());
             
             ffi::SQLAllocHandle(
                 T::HANDLE_TYPE,
