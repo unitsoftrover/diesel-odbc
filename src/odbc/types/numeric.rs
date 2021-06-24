@@ -37,7 +37,7 @@ pub mod bigdecimal {
                     unsafe{
                         let ptr = bytes.as_ptr() as * const ffi::SQL_Numeric_STRUCT;
                         let mut n = (*ptr).val.len()-1;
-                        while n >= 0 {
+                        loop {
                             let current = (*ptr).val[n];
                             if current != 0u8{
                                 break;

@@ -385,7 +385,15 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
                             ffi::SqlDataType::SQL_CHAR | ffi::SqlDataType::SQL_VARCHAR |ffi::SqlDataType::SQL_EXT_LONGVARCHAR 
                             =>column_size+1,
                             ffi::SqlDataType::SQL_DECIMAL | ffi::SqlDataType::SQL_NUMERIC
-                            =>column_size+1,                            
+                            =>column_size+1,
+                            ffi::SqlDataType::SQL_DATE=>{
+                                // println!("column_size:{:?}", column_size);
+                                column_size
+                            },
+                            ffi::SqlDataType::SQL_TIME=>{
+                                println!("column_size:{:?}", column_size);
+                                column_size
+                            },
                             _=>column_size
                         };
                         Some(column_size)
@@ -1005,17 +1013,26 @@ impl<'b, S> StatementUse<'b, S> {
     pub fn step(&mut self) -> QueryResult<Option<MysqlRow>> {        
         match self.statement.fetch(){
             Ok(_value) => {
-                let fields = &self.metadata.fields();
+                // let fields = &self.metadata.fields();
                 let bind_datas = &mut self.output_binds.data;
                 for i in 0..bind_datas.len(){
                     let bind = &mut bind_datas[i];
-                    let field = &fields[i];
-                    match field.data_type{
+                    // let field = &fields[i];
+                    match bind.tpe{
                         ffi::SqlDataType::SQL_EXT_WCHAR | ffi::SqlDataType::SQL_EXT_WVARCHAR | ffi::SqlDataType::SQL_EXT_WLONGVARCHAR =>{
                             let code_utf16 =  encoding_rs::UTF_16LE.decode(&bind.bytes).0;                               
                             let bytes = (&code_utf16).as_bytes().to_vec();
                             let _ = std::mem::replace(&mut bind.bytes, bytes);                               
-                        },                        
+                        },
+                        ffi::SqlDataType::SQL_DATE=>{
+                            // println!("date: {:?}", bind.bytes);
+                        },
+                        ffi::SqlDataType::SQL_TIME=>{
+                            println!("time: {:?}", bind.bytes);
+                        },
+                        ffi::SqlDataType::SQL_DATETIME=>{
+                            println!("datetime: {:?}", bind.bytes);
+                        },
                         _=>{}                        
                     }                  
                 }

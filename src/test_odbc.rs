@@ -23,7 +23,10 @@ use odbc_safe as safe;
 use odbc::connection::statement::{Statement, ResultSetState};
 use models::*;
 use diesel::prelude::*;
-// use self::odbc::types::*;
+use chrono::{NaiveDateTime, NaiveDate};
+use diesel::debug_query;
+use diesel::sql_types::Numeric;
+use odbc::types::numeric::*;
 
 fn main(){
     std::env::set_var("RUST_LOG", "actix_web=info");
@@ -102,6 +105,38 @@ fn main(){
         println!("CompanyName:{}", company1.CompanyName);
         println!("Create Date:{:?}", company1.DateCreated);
         println!("Credit Amount:{}", company1.CreditAmount);
+        println!("Is Headquater:{}", company1.IsHeadOffice);
+        println!("Test Date:{}", company1.TestDate);
     }
+
+    use diesel::insert_into;
+    use diesel::select;
+    // let one_company = insert_into(company)
+    //     .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CreateOffice.eq("SH"), CompanyType.eq("C")))
+    //     .execute(&conn);
+    let query = company.select(CompanyCode).filter(CompanyID.eq(1));
+    let query_str = debug_query::<odbc::Mysql, _>(&query).to_string();
+    println!("query：{:?}", query_str);
+    let company_code = query.load::<String>(&conn).unwrap();
+    println!("company code:{}", company_code[0]);    
     
+    // let average : Numeric = company.select(avg(CreditAmount)).get_result(&conn).unwrap();
+
+    // select("select 1").execute(&conn);
+
+    // conn.execute(query: &str)    
 }
+
+use diesel::sql_types::Foldable;
+
+sql_function!{
+ #[aggregate]
+    fn sum<ST: Foldable>(expr: ST) -> ST::Sum;
+}
+
+sql_function!{
+    #[aggregate]
+       fn avg<ST: Foldable>(expr: ST) -> ST::Avg;
+   }
+
+sql_function!(fn getdate() -> Text);

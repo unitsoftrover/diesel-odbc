@@ -1,6 +1,6 @@
 use super::MysqlType;
 use diesel::deserialize;
-use crate::odbc::connection::ffi::SQL_TIMESTAMP_STRUCT;
+use crate::odbc::connection::ffi::{SQL_TIMESTAMP_STRUCT, SQL_TIME_STRUCT, SQL_DATE_STRUCT};
 use std::error::Error;
 
 /// Raw mysql value as received from the database
@@ -31,7 +31,7 @@ impl<'a> MysqlValue<'a> {
     // so clippy is clearly wrong here
     // https://github.com/rust-lang/rust-clippy/issues/2881
     #[allow(dead_code, clippy::cast_ptr_alignment)]
-    pub(crate) fn time_value(&self) -> deserialize::Result<SQL_TIMESTAMP_STRUCT> {
+    pub(crate) fn datetime_value(&self) -> deserialize::Result<SQL_TIMESTAMP_STRUCT> {
         match self.tpe {
             MysqlType::Time | MysqlType::Date | MysqlType::DateTime | MysqlType::Timestamp => {
                 let ptr = self.raw.as_ptr() as *const SQL_TIMESTAMP_STRUCT;
@@ -39,6 +39,30 @@ impl<'a> MysqlValue<'a> {
                 Ok(result)                
             }
             _ => Err(self.invalid_type_code("timestamp")),
+        }
+    }
+
+    #[allow(dead_code, clippy::cast_ptr_alignment)]
+    pub(crate) fn time_value(&self) -> deserialize::Result<SQL_TIME_STRUCT> {
+        match self.tpe {
+            MysqlType::Time => {
+                let ptr = self.raw.as_ptr() as *const SQL_TIME_STRUCT;
+                let result = unsafe { ptr.read_unaligned() };                
+                Ok(result)                
+            }
+            _ => Err(self.invalid_type_code("time")),
+        }
+    }
+
+    #[allow(dead_code, clippy::cast_ptr_alignment)]
+    pub(crate) fn date_value(&self) -> deserialize::Result<SQL_DATE_STRUCT> {
+        match self.tpe {
+            MysqlType::Date => {
+                let ptr = self.raw.as_ptr() as *const SQL_DATE_STRUCT;
+                let result = unsafe { ptr.read_unaligned() };                
+                Ok(result)                
+            }
+            _ => Err(self.invalid_type_code("date")),
         }
     }
 

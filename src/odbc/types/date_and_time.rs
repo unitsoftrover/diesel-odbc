@@ -2,13 +2,13 @@ use chrono::*;
 use std::io::Write;
 use std::{mem, slice};
 
-use crate::odbc::connection::ffi::SQL_TIMESTAMP_STRUCT;
+use crate::odbc::connection::ffi::{SQL_TIMESTAMP_STRUCT, SQL_DATE_STRUCT, SQL_TIME_STRUCT};
 use diesel::deserialize::{self, FromSql};
 use crate::odbc::{Mysql, MysqlValue};
 use diesel::serialize::{self, IsNull, Output, ToSql};
 use diesel::sql_types::{Date, Datetime, Time, Timestamp};
 
-macro_rules! mysql_time_impls {
+macro_rules! mysql_datetime_impls {
     ($ty:ty) => {
         impl ToSql<$ty, Mysql> for SQL_TIMESTAMP_STRUCT {
             fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
@@ -23,16 +23,58 @@ macro_rules! mysql_time_impls {
 
         impl FromSql<$ty, Mysql> for SQL_TIMESTAMP_STRUCT {
             fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+                value.datetime_value()
+            }
+        }
+    };
+}
+
+macro_rules! mysql_date_impls {
+    ($ty:ty) => {
+        impl ToSql<$ty, Mysql> for SQL_DATE_STRUCT {
+            fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
+                let bytes = unsafe {
+                    let bytes_ptr = self as *const SQL_DATE_STRUCT as *const u8;
+                    slice::from_raw_parts(bytes_ptr, mem::size_of::<SQL_DATE_STRUCT>())
+                };
+                out.write_all(bytes)?;
+                Ok(IsNull::No)
+            }
+        }
+
+        impl FromSql<$ty, Mysql> for SQL_DATE_STRUCT {
+            fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+                value.date_value()
+            }
+        }
+    };
+}
+
+macro_rules! mysql_time_impls {
+    ($ty:ty) => {
+        impl ToSql<$ty, Mysql> for SQL_TIME_STRUCT {
+            fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
+                let bytes = unsafe {
+                    let bytes_ptr = self as *const SQL_TIME_STRUCT as *const u8;
+                    slice::from_raw_parts(bytes_ptr, mem::size_of::<SQL_TIME_STRUCT>())
+                };
+                out.write_all(bytes)?;
+                Ok(IsNull::No)
+            }
+        }
+
+        impl FromSql<$ty, Mysql> for SQL_TIME_STRUCT {
+            fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
                 value.time_value()
             }
         }
     };
 }
 
-mysql_time_impls!(Datetime);
-mysql_time_impls!(Timestamp);
+mysql_datetime_impls!(Datetime);
+mysql_datetime_impls!(Timestamp);
 mysql_time_impls!(Time);
-mysql_time_impls!(Date);
+mysql_date_impls!(Date);
 
 impl ToSql<Datetime, Mysql> for NaiveDateTime {
     fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
@@ -47,7 +89,7 @@ impl FromSql<Datetime, Mysql> for NaiveDateTime {
 }
 
 impl ToSql<Timestamp, Mysql> for NaiveDateTime {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {      
         let mysql_time = SQL_TIMESTAMP_STRUCT {
             year: self.year() as i16,
             month: self.month() as u16,
@@ -66,10 +108,10 @@ impl FromSql<Timestamp, Mysql> for NaiveDateTime {
     fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
         let mysql_time = <SQL_TIMESTAMP_STRUCT as FromSql<Timestamp, Mysql>>::from_sql(bytes)?;
 
-        NaiveDate::from_ymd_opt(
+        let datetime = NaiveDate::from_ymd_opt(
             mysql_time.year as i32,
             mysql_time.month as u32,
-            mysql_time.day as u32,
+            mysql_time.day as u32,            
         )
         .and_then(|v| {
             v.and_hms_micro_opt(
@@ -79,63 +121,66 @@ impl FromSql<Timestamp, Mysql> for NaiveDateTime {
                 mysql_time.fraction as u32,
             )
         })
-        .ok_or_else(|| format!("Cannot parse this date: {:?}", mysql_time).into())
+        .unwrap_or(MIN_DATETIME.naive_utc());
+        Ok(datetime)
+        // .ok_or_else(|| format!("Cannot parse this date: {:?}", mysql_time).into())
     }
 }
 
 impl ToSql<Time, Mysql> for NaiveTime {
     fn to_sql<W: Write>(&self, out: &mut serialize::Output<W, Mysql>) -> serialize::Result {
-        let mysql_time = SQL_TIMESTAMP_STRUCT {
+        let mysql_time = SQL_TIME_STRUCT {
             hour: self.hour() as u16,
             minute: self.minute() as u16,
             second: self.second() as u16,
-            day: 0,
-            month: 0,
-            fraction: 0,
-            year: 0,
         };
 
-        <SQL_TIMESTAMP_STRUCT as ToSql<Time, Mysql>>::to_sql(&mysql_time, out)
+        <SQL_TIME_STRUCT as ToSql<Time, Mysql>>::to_sql(&mysql_time, out)
     }
 }
 
 impl FromSql<Time, Mysql> for NaiveTime {
     fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let mysql_time = <SQL_TIMESTAMP_STRUCT as FromSql<Time, Mysql>>::from_sql(bytes)?;
-        NaiveTime::from_hms_opt(
+        let mysql_time = <SQL_TIME_STRUCT as FromSql<Time, Mysql>>::from_sql(bytes)?;
+        let time = NaiveTime::from_hms_opt(
             mysql_time.hour as u32,
             mysql_time.minute as u32,
             mysql_time.second as u32,
         )
-        .ok_or_else(|| format!("Unable to convert {:?} to chrono", mysql_time).into())
+        .unwrap_or(MIN_DATETIME.time());
+        Ok(time)
+        // .ok_or_else(|| format!("Unable to convert {:?} to chrono", mysql_time).into())
     }
 }
 
 impl ToSql<Date, Mysql> for NaiveDate {
     fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
-        let mysql_time = SQL_TIMESTAMP_STRUCT {
+        let mysql_time = SQL_DATE_STRUCT {
             year: self.year() as i16,
             month: self.month() as u16,
             day: self.day() as u16,
-            hour: 0,
-            minute: 0,
-            second: 0,
-            fraction: 0,
         };
 
-        <SQL_TIMESTAMP_STRUCT as ToSql<Date, Mysql>>::to_sql(&mysql_time, out)
+        <SQL_DATE_STRUCT as ToSql<Date, Mysql>>::to_sql(&mysql_time, out)
     }
 }
 
 impl FromSql<Date, Mysql> for NaiveDate {
     fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let mysql_time = <SQL_TIMESTAMP_STRUCT as FromSql<Date, Mysql>>::from_sql(bytes)?;
-        NaiveDate::from_ymd_opt(
+        // println!("bytes:{:?}", bytes);
+        
+        let mysql_time = <SQL_DATE_STRUCT as FromSql<Date, Mysql>>::from_sql(bytes)?;
+        let date = NaiveDate::from_ymd_opt(
             mysql_time.year as i32,
             mysql_time.month as u32,
             mysql_time.day as u32,
         )
-        .ok_or_else(|| format!("Unable to convert {:?} to chrono", mysql_time).into())
+        .unwrap_or_else(||{
+            let datetime = MIN_DATETIME.naive_utc();
+            NaiveDate::from_ymd(datetime.year(), datetime.month(), datetime.day())
+        });       
+        // .ok_or_else(|| format!("Unable to convert {:?} to chrono", mysql_time).into());
+        Ok(date)
     }
 }
 

@@ -359,37 +359,89 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
                                 stmt.bind_parameter1(i,  &(*para));
                             }
                         },
+                        odbc_sys::SqlDataType::SQL_SMALLINT=>{
+                            unsafe {                                
+                                let para = bind.bytes.as_ptr() as *const i16;                                
+                                stmt.bind_parameter1(i,  &(*para));
+                            }
+                        },
+                        odbc_sys::SqlDataType::SQL_EXT_TINYINT=>{
+                            unsafe {                                
+                                let para = bind.bytes.as_ptr() as *const i8;                                
+                                stmt.bind_parameter1(i,  &(*para));
+                            }
+                        },
+                        odbc_sys::SqlDataType::SQL_EXT_BIGINT=>{
+                            unsafe {                                
+                                let para = bind.bytes.as_ptr() as *const i64;                                
+                                stmt.bind_parameter1(i,  &(*para));
+                            }
+                        },
                         odbc_sys::SqlDataType::SQL_EXT_BIT=>{
                             unsafe {                                
                                 let para = bind.bytes.as_ptr() as *const bool;                                
                                 stmt.bind_parameter1(i,  &(*para));
                             }
                         },
-                        odbc_sys::SqlDataType::SQL_DECIMAL | odbc_sys::SqlDataType::SQL_NUMERIC
-                        | odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
+                        odbc_sys::SqlDataType::SQL_DECIMAL | odbc_sys::SqlDataType::SQL_NUMERIC  
                         =>{
                             unsafe {
                                 let para = bind.bytes.as_ptr() as *const f64;                                
                                 stmt.bind_parameter1(i,  &(*para));
                             }
                         },
-                        odbc_sys::SqlDataType::SQL_VARCHAR | odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
-                        | odbc_sys::SqlDataType::SQL_CHAR | odbc_sys::SqlDataType::SQL_EXT_WCHAR
-                        | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR | odbc_sys::SqlDataType::SQL_EXT_WLONGVARCHAR
+                        odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
+                        =>{
+                            unsafe {
+                                let para = bind.bytes.as_ptr() as *const f64;                                
+                                stmt.bind_parameter1(i,  &(*para));
+                            }
+                        },
+                        odbc_sys::SqlDataType::SQL_REAL
+                        =>{
+                            unsafe {
+                                let para = bind.bytes.as_ptr() as *const f32;                                
+                                stmt.bind_parameter1(i,  &(*para));
+                            }
+                        },
+                        odbc_sys::SqlDataType::SQL_VARCHAR
+                        | odbc_sys::SqlDataType::SQL_CHAR
+                        | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR
                         =>{                            
                             let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
                             stmt.bind_parameter1(i,  &str);
                         },
-                        odbc_sys::SqlDataType::SQL_DATE | odbc_sys::SqlDataType::SQL_DATETIME                                                
-                        =>{                            
-                            unsafe {
-                                let para = bind.bytes.as_ptr() as *const SqlTime;                                
-                                stmt.bind_parameter1(i,  &(*para));
-                            }
-                        },                        
-                        _=>{
+                        odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
+                        | odbc_sys::SqlDataType::SQL_EXT_WCHAR
+                        | odbc_sys::SqlDataType::SQL_EXT_WLONGVARCHAR
+                        =>{
                             let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
                             stmt.bind_parameter1(i,  &str);
+                        },
+                        odbc_sys::SqlDataType::SQL_DATETIME                                                
+                        =>{
+                            unsafe {
+                                let para = bind.bytes.as_ptr() as *const ffi::SQL_TIMESTAMP_STRUCT;                                
+                                stmt.bind_parameter1(i,  &(*para));
+                            }
+                        },           
+                        odbc_sys::SqlDataType::SQL_DATE                                                
+                        =>{                            
+                            unsafe {
+                                let para = bind.bytes.as_ptr() as *const ffi::SQL_DATE_STRUCT;                                
+                                stmt.bind_parameter1(i,  &(*para));
+                            }
+                        }, 
+                        odbc_sys::SqlDataType::SQL_TIME                                                
+                        =>{                            
+                            unsafe {
+                                let para = bind.bytes.as_ptr() as *const ffi::SQL_TIME_STRUCT;                                
+                                stmt.bind_parameter1(i,  &(*para));
+                            }
+                        },              
+                        _=>{
+                            // let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
+                            // stmt.bind_parameter1(i,  &str);
                         }
                     };             
                     i += 1;

@@ -111,8 +111,7 @@ impl Binds {
         Ok(Binds { data })
     }
 
-    pub fn from_output_types(types: Vec<Option<MysqlType>>, metadata: &StatementMetadata) -> Self {       
-
+    pub fn from_output_types(types: Vec<Option<MysqlType>>, metadata: &StatementMetadata) -> Self {
         let data = metadata
             .fields()
             .iter()
@@ -346,14 +345,14 @@ impl From<MysqlType> for (odbc_sys::SqlDataType, Flags) {
     fn from(tpe: MysqlType) -> Self {        
         let mut flags = Flags::empty();
         let tpe = match tpe {
-            MysqlType::Tiny => odbc_sys::SqlDataType::SQL_SMALLINT,
+            MysqlType::Tiny => odbc_sys::SqlDataType::SQL_EXT_TINYINT,
             MysqlType::Short => odbc_sys::SqlDataType::SQL_SMALLINT,
             MysqlType::Long => odbc_sys::SqlDataType::SQL_INTEGER,
             MysqlType::LongLong => odbc_sys::SqlDataType::SQL_INTEGER,
             MysqlType::Float => odbc_sys::SqlDataType::SQL_REAL,
             MysqlType::Double => odbc_sys::SqlDataType::SQL_FLOAT,
-            MysqlType::Time => odbc_sys::SqlDataType::SQL_DATETIME,
-            MysqlType::Date => odbc_sys::SqlDataType::SQL_DATETIME,
+            MysqlType::Time => odbc_sys::SqlDataType::SQL_TIME,
+            MysqlType::Date => odbc_sys::SqlDataType::SQL_DATE,
             MysqlType::DateTime => odbc_sys::SqlDataType::SQL_DATETIME,
             MysqlType::Timestamp => odbc_sys::SqlDataType::SQL_DATETIME,
             MysqlType::String => odbc_sys::SqlDataType::SQL_EXT_WCHAR,
@@ -403,7 +402,7 @@ impl From<(odbc_sys::SqlDataType, Flags)> for MysqlType {
             odbc_sys::SqlDataType::SQL_SMALLINT => MysqlType::Short,
             odbc_sys::SqlDataType::SQL_INTEGER => MysqlType::Long,
             odbc_sys::SqlDataType::SQL_EXT_BIGINT=>MysqlType::LongLong,
-            odbc_sys::SqlDataType::SQL_REAL => MysqlType::Double,            
+            odbc_sys::SqlDataType::SQL_REAL => MysqlType::Float,            
             odbc_sys::SqlDataType::SQL_FLOAT => MysqlType::Float,            
             odbc_sys::SqlDataType::SQL_DOUBLE => MysqlType::Double,            
             odbc_sys::SqlDataType::SQL_DECIMAL |  odbc_sys::SqlDataType::SQL_NUMERIC => MysqlType::Numeric,
@@ -452,9 +451,14 @@ fn known_buffer_size_for_ffi_type(tpe: odbc_sys::SqlDataType) -> Option<usize> {
     use odbc_sys::SqlDataType as t;
     use std::mem::size_of;
 
-    match tpe {
-        t::SQL_CHAR => Some(1),        
+    match tpe {        
         t::SQL_INTEGER => Some(4),
+        t::SQL_SMALLINT=> Some(2),
+        t::SQL_EXT_TINYINT=> Some(1),
+        t::SQL_EXT_BIGINT=> Some(8),
+        t::SQL_EXT_BIT => Some(1),
+        t::SQL_REAL => Some(4),
+        t::SQL_FLOAT => Some(8),
         t::SQL_DOUBLE => Some(8),
         t::SQL_DATETIME => Some(size_of::<super::ffi::SQL_TIMESTAMP_STRUCT>()),
         t::SQL_DATE => Some(size_of::<super::ffi::SQL_DATE_STRUCT>()),

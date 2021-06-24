@@ -1,7 +1,7 @@
 extern crate bigdecimal;
 use serde::{Deserialize, Serialize};
 use crate::schema::users;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, NaiveDate};
 use diesel::prelude::*;
 use bigdecimal::BigDecimal;
 
@@ -22,11 +22,22 @@ pub struct NewUser {
 pub struct Company {
     pub CompanyID: i32,
     pub CompanyCode: String,
+    pub CompanyType: String,
+    pub CreateOffice : String,
     pub CompanyName: String,
     pub CompanyNameCN: String,
     pub DateCreated: NaiveDateTime,
     pub CreditAmount: BigDecimal,
-    // pub IsHeadOffice: bool,
+    pub IsHeadOffice: bool,
+    pub TestSmallInt : i16, 
+    pub TestTinyInt : i8, 
+    pub TestDate : NaiveDate, 
+    pub TestTime : NaiveDateTime, 
+    // pub TestFloat : f64, 
+    // pub TestReal : f32, 
+    // pub TestBigInt : i64, 
+    // // pub TestBin : Vec<u8>,
+    // pub CreditInstruction : String,
 }
 
 

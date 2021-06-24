@@ -115,12 +115,37 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
                         let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
                     }
                 },
+                odbc_sys::SqlDataType::SQL_SMALLINT=>{                   
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const i16;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
+                odbc_sys::SqlDataType::SQL_EXT_TINYINT=>{                   
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const i8;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
+                odbc_sys::SqlDataType::SQL_EXT_BIGINT=>{                   
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const i64;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
                 odbc_sys::SqlDataType::SQL_EXT_BIT=>{
                     unsafe{
                         let ptr = bind.bytes.as_ptr() as * const bool;
                         let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
                     }
                 },  
+                odbc_sys::SqlDataType::SQL_REAL
+                =>{
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const f32;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
                 odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
                 =>{
                     unsafe{
@@ -135,21 +160,39 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
                 odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
                 | odbc_sys::SqlDataType::SQL_EXT_WCHAR
                 | odbc_sys::SqlDataType::SQL_EXT_WLONGVARCHAR
-                =>{                                                
+                =>{
                     let _ = self.bind_col2(i, &bind.bytes, ffi::SqlCDataType::SQL_C_WCHAR,&mut bind.length, EncodedValue::new(None));                    
                 },
                 odbc_sys::SqlDataType::SQL_VARCHAR
                 | odbc_sys::SqlDataType::SQL_CHAR
-                | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR
+                | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR                
                 =>{                                                           
                     let _ = self.bind_col2(i, &bind.bytes, ffi::SqlCDataType::SQL_C_CHAR, &mut bind.length, EncodedValue::new(None));                    
                 },
-                odbc_sys::SqlDataType::SQL_DATE | odbc_sys::SqlDataType::SQL_DATETIME                                                
+                odbc_sys::SqlDataType::SQL_DATETIME                                                
                 =>{
                     unsafe{
                         let ptr = bind.bytes.as_ptr() as * const ffi::SQL_TIMESTAMP_STRUCT;
                         let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
                     }
+                },
+                odbc_sys::SqlDataType::SQL_DATE                                                
+                =>{
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const ffi::SQL_DATE_STRUCT;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
+                odbc_sys::SqlDataType::SQL_TIME
+                =>{
+                    unsafe{
+                        let ptr = bind.bytes.as_ptr() as * const ffi::SQL_TIME_STRUCT;
+                        let _ = self.bind_col1(i, &(*ptr), &mut bind.length, EncodedValue::new(None));
+                    }
+                },
+                odbc_sys::SqlDataType::SQL_EXT_BINARY | odbc_sys::SqlDataType::SQL_EXT_VARBINARY | odbc_sys::SqlDataType::SQL_EXT_LONGVARBINARY
+                =>{
+                     let _ = self.bind_col1(i, &bind.bytes, &mut (bind.length as i64), EncodedValue::new(None));
                 },
                 _=>{
                     // let _ = self.bind_col1(i, &bind.bytes, &mut (bind.length as i64), EncodedValue::new(None));
