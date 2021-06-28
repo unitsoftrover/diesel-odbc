@@ -339,6 +339,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         let mut query_builder = crate::odbc::MysqlQueryBuilder::new();
         source.to_sql(&mut query_builder)?;
         let sql = query_builder.finish();
+        println!("prepare sql:{}", sql);
         let mut stmt = stmt.prepare(sql.as_str()).unwrap(); 
         let mut bind_collector = RawBytesBindCollector::new();
         source.collect_binds(&mut bind_collector, &())?;
@@ -451,7 +452,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         Ok(stmt)       
     }
 
-    fn prepare_query1(&self, source: &String) -> super::statement::Statement<Prepared, NoResult, AC>
+    pub fn prepare_query1(&self, source: &String) -> super::statement::Statement<Prepared, NoResult, AC>
     {        
         let stmt = super::statement::Statement::with_parent(self).unwrap();
         let stmt = stmt.prepare(source).unwrap();       
@@ -459,7 +460,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
     }
 
     #[doc(hidden)]
-    fn execute(&self, query: &str) -> QueryResult<usize> {
+    pub fn execute(&self, query: &str) -> QueryResult<usize> {
         let stmt = Statement::with_parent(self).unwrap();
         let stmt = stmt.exec_direct(query).unwrap();
         match stmt{

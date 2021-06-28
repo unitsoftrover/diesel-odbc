@@ -1,12 +1,13 @@
 extern crate bigdecimal;
 use serde::{Deserialize, Serialize};
-use crate::schema::users;
+use crate::schema::{users};
 use chrono::{NaiveDateTime, NaiveDate};
 use diesel::prelude::*;
 use bigdecimal::BigDecimal;
 
 
-#[derive(Debug, Clone, Serialize, Queryable, Insertable)]
+#[derive(Debug, Clone, Serialize, Queryable, Insertable, PartialEq,QueryableByName)]
+#[table_name = "users"]
 pub struct User {
     pub id: String,
     pub name: String,
@@ -18,7 +19,9 @@ pub struct NewUser {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Clone,Queryable)]
+// #[derive(Debug, Clone, Queryable, PartialEq,QueryableByName)]
+#[derive(Debug, Clone, Queryable, PartialEq)]
+// #[table_name = "company"]
 pub struct Company {
     pub CompanyID: i32,
     pub CompanyCode: String,

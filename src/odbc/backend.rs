@@ -77,5 +77,6 @@ impl TypeMetadata for Mysql {
     type MetadataLookup = ();
 }
 
+impl SupportsReturningClause for Mysql {}
 impl SupportsDefaultKeyword for Mysql {}
 impl UsesAnsiSavepointSyntax for Mysql {}
