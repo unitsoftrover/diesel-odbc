@@ -153,12 +153,13 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
     #[doc(hidden)]
     fn load<T, U>(&self, source: T) -> QueryResult<Vec<U>>
     where
-        T: AsQuery,               
-        T::Query: QueryFragment<Self::Backend> + QueryId,
+        T: AsQuery,
+        T::Query: QueryFragment<Self::Backend> + QueryId,        
         U: FromSqlRow<T::SqlType, Self::Backend>,
-        Self::Backend: QueryMetadata<T::SqlType>,           
+        Self::Backend: QueryMetadata<T::SqlType>,       
     {       
-        let query = source.as_query();
+
+        let query = source.as_query();                
         let stmt = self.prepare_query(&query)?;   
 
         let mut types = Vec::new();
@@ -339,6 +340,8 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         let mut query_builder = crate::odbc::MysqlQueryBuilder::new();
         source.to_sql(&mut query_builder)?;
         let sql = query_builder.finish();
+
+        // out.push_sql(&format!(" WHERE {}=scope_identity()", "CompanyID"));
         println!("prepare sql:{}", sql);
         let mut stmt = stmt.prepare(sql.as_str()).unwrap(); 
         let mut bind_collector = RawBytesBindCollector::new();

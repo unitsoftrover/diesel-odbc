@@ -206,6 +206,11 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
             if num_cols > 0 {
                 Ok(ResultSetState::Data(Statement::with_raii(self.raii)))
             } else {
+
+                if self.get_more_results().unwrap() == 1{
+                    return Ok(ResultSetState::Data(Statement::with_raii(self.raii)));
+                }
+
                 Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
             }
         } else {

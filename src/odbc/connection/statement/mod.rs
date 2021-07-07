@@ -497,6 +497,21 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
         }
     }
 
+    pub fn get_more_results(&self) -> Result<i16> {
+        
+        let result = 
+        unsafe {
+            match ffi::SQLMoreResults(self.handle()) {
+                SQL_SUCCESS => Return::Success(1),
+                SQL_SUCCESS_WITH_INFO => Return::SuccessWithInfo(1),
+                SQL_NO_DATA=>Return::Success(0),
+                SQL_ERROR => Return::Error,
+                r => panic!("SQLMoreResults returned unexpected result: {:?}", r),
+            }
+        };
+        result.into_result(self)      
+    }
+    
     fn tables1(&mut self, catalog_name: Option<&str>, schema_name: Option<&str>, table_name: Option<&str>, table_type: &str) -> Return<()> {
         unsafe {
             let mut catalog: *const odbc_sys::SQLCHAR = null_mut();
@@ -907,6 +922,7 @@ impl<S, AC: AutocommitMode> Statement<S, HasResult, AC> {
     pub fn num_result_cols(&self) -> Result<i16> {
         self.num_result_cols1().into_result(self)
     }
+
 
     /// Returns description struct for result set column with a given index. Note: indexing is starting from 1.
     pub fn describe_col(&self, idx: u16) -> Result<ColumnDescriptor> {

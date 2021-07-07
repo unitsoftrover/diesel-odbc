@@ -234,6 +234,11 @@ fn main(){
 
     use self::schema::company::dsl::*;
 
+    let mut query_builder = odbc::MysqlQueryBuilder::new();    
+    let ast_pass = AstPass::<odbc::Mysql>::to_sql(&mut query_builder);    
+    let primary_key = company.primary_key();    
+    primary_key.walk_ast(ast_pass).unwrap();
+
     let results = company
         .filter(CompanyID.eq(1))              
         .load::<Company>(&conn)
@@ -245,53 +250,58 @@ fn main(){
         println!("CompanyCode:{}", company1.CompanyCode);
         println!("CompanyName:{}", company1.CompanyName);
         println!("Create Date:{:?}", company1.DateCreated);
-        println!("Credit Amount:{}", company1.CreditAmount);
-        println!("Is Headquater:{}", company1.IsHeadOffice);
-        println!("Test Date:{}", company1.TestDate);
+        // println!("Credit Amount:{}", company1.CreditAmount);
+        // println!("Is Headquater:{}", company1.IsHeadOffice);
+        // println!("Test Date:{}", company1.TestDate);
     }
 
     let _one_company = insert_into(company)
-        .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CreateOffice.eq("SH"), CompanyType.eq("C")))
+        .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CompanyType.eq("C"), CreateOffice.eq("SH")))
         .get_result::<Company>(&conn);
-        
+    _one_company.map(|com|{
+        println!("CompanyID:{}", com.CompanyID);
+        println!("inserted id:{:?}", com.CompanyID);
+        let sql = format!("exec MakeCode 'CompanyCode', {}", com.CompanyID);
+        let _ = conn.execute(sql.as_str());
+    }).unwrap();        
 
-    let stmt = conn.prepare_query1(&"select ident_current('company')".to_owned());
-    if let Ok(rs) = stmt.execute(){
-        match rs{
-            ResultSetState::Data(mut st)=>{
-                let mut cur = st.fetch().unwrap().unwrap();
-                if let Some(company_id) = cur.get_data::<i64>(1).unwrap(){
-                    println!("inserted id:{:?}", company_id);
-                    let sql = format!("exec MakeCode 'CompanyCode', {}", company_id);
-                    let _ = conn.execute(sql.as_str());
-                }
-                else
-                {
-                    println!("no inserted id.")
-                }
-            },
-            ResultSetState::NoData(_st)=>{
+    // let stmt = conn.prepare_query1(&"select ident_current('company')".to_owned());
+    // if let Ok(rs) = stmt.execute(){
+    //     match rs{
+    //         ResultSetState::Data(mut st)=>{
+    //             let mut cur = st.fetch().unwrap().unwrap();
+    //             if let Some(company_id) = cur.get_data::<i64>(1).unwrap(){
+    //                 println!("inserted id:{:?}", company_id);
+    //                 let sql = format!("exec MakeCode 'CompanyCode', {}", company_id);
+    //                 let _ = conn.execute(sql.as_str());
+    //             }
+    //             else
+    //             {
+    //                 println!("no inserted id.")
+    //             }
+    //         },
+    //         ResultSetState::NoData(_st)=>{
 
-            }
-        }        
-    }
+    //         }
+    //     }        
+    // }
 
     let query = company.select(CompanyCode).filter(CompanyID.eq(1));
     let query_str = debug_query::<odbc::Mysql, _>(&query).to_string();
     println!("query：{:?}", query_str);
     let company_code = query.load::<String>(&conn).unwrap();
     println!("company code:{}", company_code[0]);        
-    let sum1 : Option<BigDecimal> = company.select(sum(CreditAmount)).get_result(&conn).unwrap();
-    println!("sum:{:?}", sum1);
+    // let sum1 : Option<BigDecimal> = company.select(sum(CreditAmount)).get_result(&conn).unwrap();
+    // println!("sum:{:?}", sum1);
 
-    let avg : Option<BigDecimal> = company.select(avg(CreditAmount)).get_result(&conn).unwrap();
-    println!("avg:{:?}", avg);
+    // let avg : Option<BigDecimal> = company.select(avg(CreditAmount)).get_result(&conn).unwrap();
+    // println!("avg:{:?}", avg);
 
-    let count : i64= company.select(count(CompanyID)).get_result(&conn).unwrap();
-    println!("count:{}", count);
+    // let count : i64= company.select(count(CompanyID)).get_result(&conn).unwrap();
+    // println!("count:{}", count);
 
-    let count : Option<BigDecimal> = company.select(sum(CreditAmount)).get_result(&conn).unwrap();
-    println!("sum: {}", count.unwrap());
+    // let count : Option<BigDecimal> = company.select(sum(CreditAmount)).get_result(&conn).unwrap();
+    // println!("sum: {}", count.unwrap());
 
     // let company_list = sql_query("SELECT CompanyID,CompanyCode,CompanyType,CreateOffice,CompanyName,CompanyNameCN,DateCreated,CreditAmount,IsHeadOffice,TestSmallInt,TestTinyInt,TestDate,TestTime FROM company ORDER BY CompanyCode")
     // .load::<Company>(&conn).unwrap();
@@ -355,4 +365,25 @@ fn run_test_1() -> QueryResult<()> {
     Ok(())
 }
  
+trait A{
+    fn test()->i32{
+        1
+    }
+}
 
+struct A1{
+
+}
+
+impl A for A1{    
+}
+
+fn test(a : &A1){
+
+}
+
+fn test_main()
+{
+    let a1 = A1{};
+    test(&a1);
+}
