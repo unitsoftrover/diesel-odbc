@@ -169,7 +169,6 @@ fn main(){
     let sum1 = add_as!(1,2,3);
     println!("sum:{}", sum1);
 
-
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::builder().target(env_logger::Target::Stdout).init();
     dotenv::dotenv().ok();
@@ -257,13 +256,14 @@ fn main(){
 
     let _one_company = insert_into(company)
         .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CompanyType.eq("C"), CreateOffice.eq("SH")))
-        .get_result::<Company>(&conn);
-    _one_company.map(|com|{
+        .load::<Company>(&conn).unwrap();
+    let _ = _one_company.iter().map(|com|{
         println!("CompanyID:{}", com.CompanyID);
         println!("inserted id:{:?}", com.CompanyID);
         let sql = format!("exec MakeCode 'CompanyCode', {}", com.CompanyID);
         let _ = conn.execute(sql.as_str());
-    }).unwrap();        
+    }).collect::<()>();
+    
 
     // let stmt = conn.prepare_query1(&"select ident_current('company')".to_owned());
     // if let Ok(rs) = stmt.execute(){
@@ -291,6 +291,23 @@ fn main(){
     println!("query：{:?}", query_str);
     let company_code = query.load::<String>(&conn).unwrap();
     println!("company code:{}", company_code[0]);        
+
+    diesel::update(company.filter(CompanyID.eq(1)))
+    .set(CompanyName.eq("unitsoft_test"))
+    .execute(&conn)
+    .unwrap();            
+
+    let query = company.select(CompanyName).filter(CompanyID.eq(1));
+    let company_name = query.load::<String>(&conn).unwrap();
+    println!("new company name:{}", company_name[0]); 
+
+    let company1:Company = diesel::update(company.filter(CompanyID.eq(1)))
+    .set(CompanyName.eq("unitsoft_new"))
+    .get_result(&conn)
+    .unwrap();            
+
+    println!("new company name:{}", company1.CompanyName); 
+
     // let sum1 : Option<BigDecimal> = company.select(sum(CreditAmount)).get_result(&conn).unwrap();
     // println!("sum:{:?}", sum1);
 
