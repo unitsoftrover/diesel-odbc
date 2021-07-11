@@ -27,7 +27,7 @@ pub mod bigdecimal {
                 Tiny(x) => Ok(x.into()),
                 Small(x) => Ok(x.into()),
                 Medium(x) => Ok(x.into()),
-                Big(x) => Ok(x.into()),
+                Big(x) => Ok(x.into()),                
                 Float(x) => BigDecimal::from_f32(x)
                     .ok_or_else(|| format!("{} is not valid decimal number ", x).into()),
                 Double(x) => BigDecimal::from_f64(x)
@@ -41,6 +41,9 @@ pub mod bigdecimal {
                             let current = (*ptr).val[n];
                             if current != 0u8{
                                 break;
+                            }
+                            if n == 0{
+                                return Ok(bigdecimal::BigDecimal::from(0));
                             }
                             n -= 1;                                    
                         };                                                 

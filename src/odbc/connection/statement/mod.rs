@@ -1040,15 +1040,25 @@ impl<'b, S> StatementUse<'b, S> {
                             let bytes = (&code_utf16).as_bytes().to_vec();
                             let _ = std::mem::replace(&mut bind.bytes, bytes);                               
                         },
-                        ffi::SqlDataType::SQL_DATE=>{
-                            // println!("date: {:?}", bind.bytes);
-                        },
-                        ffi::SqlDataType::SQL_TIME=>{
-                            println!("time: {:?}", bind.bytes);
-                        },
-                        ffi::SqlDataType::SQL_DATETIME=>{
-                            println!("datetime: {:?}", bind.bytes);
-                        },
+                        // ffi::SqlDataType::SQL_DATE=>{
+                        //     // println!("date: {:?}", bind.bytes);
+                        // },
+                        // ffi::SqlDataType::SQL_TIME=>{
+                        //     println!("time: {:?}", bind.bytes);
+                        // },
+                        // ffi::SqlDataType::SQL_DATETIME=>{
+                        //     println!("datetime: {:?}", bind.bytes);
+                        // },
+                        // ffi::SqlDataType::SQL_DOUBLE=>{
+                        //     println!("double: {:?}", bind.bytes);
+                        // },
+                        // ffi::SqlDataType::SQL_FLOAT=>{
+                        //     println!("float: {:?}", bind.bytes);
+                        //     unsafe{
+                        //         let ptr = bind.bytes.as_ptr() as * const f64;
+                        //         println!("float result: {:?}", *ptr);
+                        //     }
+                        // },
                         _=>{}                        
                     }                  
                 }

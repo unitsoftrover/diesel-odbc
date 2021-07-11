@@ -340,9 +340,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         let mut query_builder = crate::odbc::MysqlQueryBuilder::new();
         source.to_sql(&mut query_builder)?;
         let sql = query_builder.finish();
-
-        // out.push_sql(&format!(" WHERE {}=scope_identity()", "CompanyID"));
-        println!("prepare sql:{}", sql);
+        // println!("prepare sql:{}", sql);
         let mut stmt = stmt.prepare(sql.as_str()).unwrap(); 
         let mut bind_collector = RawBytesBindCollector::new();
         source.collect_binds(&mut bind_collector, &())?;
@@ -388,11 +386,9 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
                             }
                         },
                         odbc_sys::SqlDataType::SQL_DECIMAL | odbc_sys::SqlDataType::SQL_NUMERIC  
-                        =>{
-                            unsafe {
-                                let para = bind.bytes.as_ptr() as *const f64;                                
-                                stmt.bind_parameter1(i,  &(*para));
-                            }
+                        =>{                            
+                            let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
+                            stmt.bind_parameter1(i,  &str);
                         },
                         odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
                         =>{

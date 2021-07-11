@@ -33,7 +33,7 @@ pub enum MysqlType {
     /// A 64 bit signed integer
     LongLong,
     /// A 64 bit unsigned integer
-    UnsignedLongLong,
+    UnsignedLongLong,    
     /// A 32 bit floating point number
     Float,
     /// A 64 bit floating point number

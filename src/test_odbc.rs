@@ -29,8 +29,7 @@ use diesel::debug_query;
 // use diesel::sql_types::Foldable;
 use diesel::sql_types::{SingleValue, SqlType};
 use diesel::dsl::*;
-// use diesel::sql_types::Decimal;
-use bigdecimal::BigDecimal;
+use bigdecimal::*;
 use diesel::sql_types::*;
 // use diesel::expression::functions::aggregate_folding::*;
 
@@ -239,7 +238,7 @@ fn main(){
     primary_key.walk_ast(ast_pass).unwrap();
 
     let results = company
-        .filter(CompanyID.eq(1))              
+        .filter(CompanyCode.eq("C0000005"))              
         .load::<Company>(&conn)
         .expect("Error loading company");
 
@@ -249,21 +248,32 @@ fn main(){
         println!("CompanyCode:{}", company1.CompanyCode);
         println!("CompanyName:{}", company1.CompanyName);
         println!("Create Date:{:?}", company1.DateCreated);
-        // println!("Credit Amount:{}", company1.CreditAmount);
+        println!("Credit Amount:{}", company1.CreditAmount.unwrap_or_default());
         // println!("Is Headquater:{}", company1.IsHeadOffice);
         // println!("Test Date:{}", company1.TestDate);
     }
 
     let _one_company = insert_into(company)
-        .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CompanyType.eq("C"), CreateOffice.eq("SH")))
+        .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CompanyType.eq("C"), CreateOffice.eq("SH"), CreditAmount.eq(BigDecimal::from_f64(100000.0))))
         .load::<Company>(&conn).unwrap();
+    let mut company_id = 0;
     let _ = _one_company.iter().map(|com|{
         println!("CompanyID:{}", com.CompanyID);
         println!("inserted id:{:?}", com.CompanyID);
         let sql = format!("exec MakeCode 'CompanyCode', {}", com.CompanyID);
         let _ = conn.execute(sql.as_str());
+        company_id = com.CompanyID;        
     }).collect::<()>();
     
+    // let company1 = delete(company.filter(CompanyID.eq(company_id))).get_result::<Company>(&conn);
+    // company1.map(|com|{
+    //     println!("company code:{} company name:{}", com.CompanyCode, com.CompanyName)
+    // }).unwrap();
+
+    // replace_into(company)
+    //  .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CompanyType.eq("C"), CreateOffice.eq("SH")))
+    //  .execute(&conn)
+    //  .unwrap();
 
     // let stmt = conn.prepare_query1(&"select ident_current('company')".to_owned());
     // if let Ok(rs) = stmt.execute(){
@@ -381,26 +391,5 @@ fn run_test_1() -> QueryResult<()> {
 
     Ok(())
 }
- 
-trait A{
-    fn test()->i32{
-        1
-    }
-}
 
-struct A1{
 
-}
-
-impl A for A1{    
-}
-
-fn test(a : &A1){
-
-}
-
-fn test_main()
-{
-    let a1 = A1{};
-    test(&a1);
-}

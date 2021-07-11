@@ -241,9 +241,13 @@ impl BindData {
     }
 
     fn for_output((tpe, flags): (odbc_sys::SqlDataType, Flags), field: &super::ColumnDescriptor) -> Self {
+        let mut length = field.column_size.unwrap();
+        if length > 1000{
+            length = 1000;
+        }
         let bytes = known_buffer_size_for_ffi_type(tpe)
             .map(|len| vec![0; len])
-            .unwrap_or(vec![0; field.column_size.unwrap() as usize]);
+            .unwrap_or(vec![0; length as usize]);
         let length = bytes.len() as super::ffi::SQLLEN;
 
         BindData {
@@ -269,7 +273,8 @@ impl BindData {
             None
         } else {
             let tpe = (self.tpe, self.flags).into();
-            Some(MysqlValue::new(&self.bytes, tpe))
+            let val = MysqlValue::new(&self.bytes, tpe);           
+            Some(val)
         }
     }
 
@@ -403,7 +408,7 @@ impl From<(odbc_sys::SqlDataType, Flags)> for MysqlType {
             odbc_sys::SqlDataType::SQL_INTEGER => MysqlType::Long,
             odbc_sys::SqlDataType::SQL_EXT_BIGINT=>MysqlType::LongLong,
             odbc_sys::SqlDataType::SQL_REAL => MysqlType::Float,            
-            odbc_sys::SqlDataType::SQL_FLOAT => MysqlType::Float,            
+            odbc_sys::SqlDataType::SQL_FLOAT => MysqlType::Double,            
             odbc_sys::SqlDataType::SQL_DOUBLE => MysqlType::Double,            
             odbc_sys::SqlDataType::SQL_DECIMAL |  odbc_sys::SqlDataType::SQL_NUMERIC => MysqlType::Numeric,
             odbc_sys::SqlDataType::SQL_EXT_BIT => MysqlType::Bit,
