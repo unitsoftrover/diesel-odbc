@@ -2,6 +2,7 @@ use super::{ffi, safe, Handle, OdbcObject, Return};
 use std::ptr::null_mut;
 use super::{DiagnosticRecord, GetDiagRec};
 use super::log::*;
+use std::marker::PhantomData;
 
 /// Wrapper around handle types which ensures the wrapped value is always valid.
 ///
@@ -12,7 +13,7 @@ pub struct Raii<T: OdbcObject> {
     handle: *mut T,
     // we use phantom data to tell the borrow checker that we need to keep the data source alive
     // for the lifetime of the handle
-    //parent: PhantomData<&'p ()>,
+    parent: PhantomData<T>,
 }
 
 impl<T: OdbcObject> Handle for Raii<T> {
@@ -76,12 +77,12 @@ impl<T: OdbcObject> Raii<T> {
             ffi::SQL_SUCCESS => {
                 Return::Success(Raii {
                     handle: handle as *mut T,
-                    //parent: PhantomData,
+                    parent: PhantomData,
                 })
             },
             ffi::SQL_SUCCESS_WITH_INFO => Return::SuccessWithInfo(Raii {
                 handle: handle as *mut T,
-                //parent: PhantomData,
+                parent: PhantomData,
             }),
             ffi::SQL_ERROR => Return::Error,
             _ => panic!("SQLAllocHandle returned unexpected result"),

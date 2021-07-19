@@ -21,7 +21,7 @@ use odbc_safe::{AutocommitMode, AutocommitOn};
 use diesel::result::QueryResult;
 use statement_iterator::MysqlRow;
 pub use metadata::*;
-use std::rc::Rc;
+// use std::rc::Rc;
 
 // Allocate CHUNK_LEN elements at a time
 const CHUNK_LEN: usize = 64;

@@ -104,7 +104,7 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
     {       
 
         let query = source.as_query();                
-        let mut stmt = self.prepare_query(&query)?;   
+        let stmt = self.prepare_query(&query)?;   
 
         let mut types = Vec::new();
         Mysql::row_metadata(&(), &mut types);
