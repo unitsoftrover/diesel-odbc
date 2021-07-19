@@ -21,7 +21,7 @@ use odbc_safe::{AutocommitMode, AutocommitOn};
 use diesel::result::QueryResult;
 use statement_iterator::MysqlRow;
 pub use metadata::*;
-// use std::rc::Rc;
+use std::rc::Rc;
 
 // Allocate CHUNK_LEN elements at a time
 const CHUNK_LEN: usize = 64;
@@ -282,7 +282,7 @@ impl Raii<ffi::Stmt> {
 /// A `Statement` can be used to execute queries and retrieves results.
 pub struct Statement<S, R, AC: AutocommitMode> {
     //raii: ffi::SQLHSTMT,
-    pub raii: Raii<ffi::Stmt>,
+    pub raii: Rc<Raii<ffi::Stmt>>,
     state: PhantomData<S>,
     autocommit_mode: PhantomData<AC>,
     // Indicates wether there is an open result set or not associated with this statement.
@@ -317,7 +317,7 @@ impl<S, R, AC: AutocommitMode> Handle for Statement<S, R, AC> {
 }
 
 impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
-    pub fn with_raii(raii: Raii<ffi::Stmt>) -> Self {
+    pub fn with_raii(raii: Rc<Raii<ffi::Stmt>>) -> Self {
         Statement {            
             raii: raii,
             autocommit_mode: PhantomData,
@@ -837,7 +837,7 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
 
 impl<AC: AutocommitMode> Statement<Allocated, NoResult, AC> {
     pub fn with_parent(ds: &RawConnection<AC>) -> Result<Self> {
-        let raii = Raii::with_parent(ds).into_result(ds)?; 
+        let raii = Rc::new(Raii::with_parent(ds).into_result(ds)?); 
         Ok(Self::with_raii(raii))        
     }
 
@@ -983,7 +983,7 @@ unsafe impl<S, R, AC: AutocommitMode> safe::Handle for Statement<S, R, AC> {
 
     fn handle(&self) -> ffi::SQLHANDLE {
         
-        safe::Handle::handle(&self.raii) as ffi::SQLHANDLE      
+        safe::Handle::handle(self.raii.as_ref()) as ffi::SQLHANDLE      
     }
 }
 

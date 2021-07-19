@@ -92,19 +92,19 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
     }
 
     /// Executes a prepared statement.
-    pub fn execute(self) -> Result<ResultSetState<Prepared, AC>> {
-        if self.execute1().into_result(&self)? {
-            let num_cols = self.num_result_cols1().into_result(&self)?;
+    pub fn execute(&self) -> Result<ResultSetState<Prepared, AC>> {
+        if self.execute1().into_result(self)? {
+            let num_cols = self.num_result_cols1().into_result(self)?;
             if num_cols > 0 {
-                Ok(ResultSetState::Data(Statement::with_raii(self.raii)))
+                Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())))
             } else {
-                Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
+                Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
             }
-        } else { Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
+        } else { Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))            
         }
     }
 
-    pub fn execute_statement(mut self, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {
+    pub fn execute_statement(&mut self, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {
         for i in 1..= binds.data.len() as u16 {
             let bind = &mut binds.data[i as usize - 1];
             match bind.tpe{
@@ -199,21 +199,21 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
             };                            
         };
 
-        if self.execute1().into_result(&self)? {           
+        if self.execute1().into_result(self)? {           
 
-            let num_cols = self.num_result_cols1().into_result(&self)?;
+            let num_cols = self.num_result_cols1().into_result(self)?;
             if num_cols > 0 {
-                Ok(ResultSetState::Data(Statement::with_raii(self.raii)))
+                Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())))
             } else {
 
                 if self.get_more_results().unwrap() == 1{
-                    return Ok(ResultSetState::Data(Statement::with_raii(self.raii)));
+                    return Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())));
                 }
 
-                Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
+                Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
             }
         } else {
-            Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
+            Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
         }
     }
 }

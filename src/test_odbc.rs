@@ -236,12 +236,12 @@ fn main(){
     // let ast_pass = AstPass::<odbc::Mysql>::to_sql(&mut query_builder);    
     // let primary_key = company.primary_key();    
     // primary_key.walk_ast(ast_pass).unwrap();
-
+    
     let results = company
         .filter(CompanyCode.eq("C0000005"))              
         .load::<Company>(&conn)
         .expect("Error loading company");
-
+    
     println!("Displaying {} company", results.len());
     for company1 in results {
         println!("CompanyID:{}", company1.CompanyID);

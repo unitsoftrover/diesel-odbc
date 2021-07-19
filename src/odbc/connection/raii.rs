@@ -33,17 +33,6 @@ unsafe impl<T: OdbcObject> safe::Handle for Raii<T> {
 
 impl<T: OdbcObject> Drop for Raii<T> {
     fn drop(&mut self) {
-
-        if T::HANDLE_TYPE == ffi::SQL_HANDLE_STMT{
-            println!("statment drop");
-        }
-        if T::HANDLE_TYPE == ffi::SQL_HANDLE_DBC{
-            println!("DBC drop");
-        }
-        if T::HANDLE_TYPE == ffi::SQL_HANDLE_ENV{
-            println!("ENV drop");
-        }
-
         let ret = unsafe { ffi::SQLFreeHandle(T::HANDLE_TYPE, self.handle() as ffi::SQLHANDLE) };
         match ret {
             ffi::SQL_SUCCESS => (),
