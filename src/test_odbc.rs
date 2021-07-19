@@ -185,16 +185,16 @@ fn main(){
 
         match stmt{
             ResultSetState::Data(mut st)=>{
-                let row_count = st.affected_row_count().unwrap();
-                println!("row count: {}", row_count);
+                // let row_count = st.affected_row_count().unwrap();
+                // println!("row count: {}", row_count);
 
                 if let Some(mut cursor) = st.fetch().unwrap(){
                     if let Some(count) = cursor.get_data(1).unwrap() as Option<i64>{
                         println!("count:{}", count);
                     }
 
-                    let row_count = st.affected_row_count().unwrap();
-                    println!("row count2: {}", row_count);
+                    // let row_count = st.affected_row_count().unwrap();
+                    // println!("row count2: {}", row_count);
 
                 }
             },
@@ -205,7 +205,7 @@ fn main(){
 
     {     
         let stmt = Statement::with_parent(&conn).unwrap();
-        let stmt = stmt.prepare("select CompanyID,CompanyCode,CompanyName from company").unwrap();                   
+        let stmt = stmt.prepare("select top 1 CompanyID,CompanyCode,CompanyName from company").unwrap();                   
         let stmt = stmt.execute().unwrap();       
         match stmt{
             ResultSetState::Data(mut st)=>{
@@ -219,12 +219,7 @@ fn main(){
                     }
                     if let Some(val) = cursor.get_data(3).unwrap() as Option<String>{
                         println!("Company Name:{}", val);
-                    }
-
-                    {
-                        let row_count = st.affected_row_count().unwrap();
-                        println!("row count2: {}", row_count);
-                    }                    
+                    }                                     
                 }
             },
             ResultSetState::NoData(_st)=>{},
