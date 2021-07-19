@@ -44,6 +44,6 @@
             "cwd": "${workspaceFolder}", 
             "environment": [], 
             "console":"integratedTerminal"
-        }, 
+        },         
     ] 
 }

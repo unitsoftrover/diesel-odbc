@@ -8,38 +8,13 @@ pub mod numeric;
 mod primitives;
 
 use byteorder::WriteBytesExt;
-use mysqlclient_sys as ffi;
 use std::io::Write;
-use std::os::raw as libc;
-
 use diesel::deserialize::{self, FromSql};
 use crate::odbc::{Mysql, MysqlType, MysqlValue};
 use diesel::query_builder::QueryId;
 use diesel::serialize::{self, IsNull, Output, ToSql};
 use diesel::sql_types::ops::*;
 use diesel::sql_types::*;
-
-
-// A internal helper type
-// This type also exists in mysqlclient_sys
-// but the definition changed over time
-// to remain backward compatible with old mysqlclient_sys
-// version we just have our own copy here
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct MYSQL_TIME {
-    pub year: libc::c_uint,
-    pub month: libc::c_uint,
-    pub day: libc::c_uint,
-    pub hour: libc::c_uint,
-    pub minute: libc::c_uint,
-    pub second: libc::c_uint,
-    pub second_part: libc::c_ulong,
-    pub neg: bool,
-    pub time_type: ffi::enum_mysql_timestamp_type,
-    pub time_zone_displacement: libc::c_int,
-}
-
 
 
 impl ToSql<TinyInt, Mysql> for i8 {

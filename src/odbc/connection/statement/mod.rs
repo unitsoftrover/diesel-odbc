@@ -8,7 +8,7 @@ mod bind;
 
 pub use self::output::Output;
 use super::{ffi, safe, Return, Result, Raii, Handle};
-use super::raw_conn::RawConnection;
+use super::RawConnection;
 use ffi::SQLRETURN::*;
 use ffi::Nullable;
 use std::marker::PhantomData;
@@ -21,6 +21,7 @@ use odbc_safe::{AutocommitMode, AutocommitOn};
 use diesel::result::QueryResult;
 use statement_iterator::MysqlRow;
 pub use metadata::*;
+use std::rc::Rc;
 
 // Allocate CHUNK_LEN elements at a time
 const CHUNK_LEN: usize = 64;
@@ -613,28 +614,12 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
         Iter: IntoIterator<Item = (MysqlType, Option<Vec<u8>>)>,
     {
         let input_binds = Binds::from_input_data(binds)?;  
-        // input_binds.with_mysql_binds(|bind|{
-        //     // let i = i32::convert(bind.bytes.as_slice());            
-        //     self.bind_parameter1(1,  &self.input_id)
-        // }); 
         let i = 1;
         self.bind_parameter1(1,  &i);
         self.input_binds = Some(input_binds);
 
         Ok(())        
     }
-
-    // pub(super) fn execute_statement(&mut self, binds: &mut Binds) -> QueryResult<()> {        
-    //     let mut i = 1;
-    //     let _ = binds.data.iter_mut()
-    //     .map(|x| {               
-    //         let _ = self.bind_col1(i, &x.bytes, &mut (x.length as i64), &EncodedValue{buf : None});
-    //         i += 1;                            
-    //     });
-
-    //     let _ = self.execute1().into_result(self).unwrap();        
-    //     Ok(())
-    // }
     
     fn bind_input_parameter1<'c, T>(
         &mut self,
@@ -997,6 +982,7 @@ unsafe impl<S, R, AC: AutocommitMode> safe::Handle for Statement<S, R, AC> {
     const HANDLE_TYPE : ffi::HandleType = ffi::SQL_HANDLE_STMT;
 
     fn handle(&self) -> ffi::SQLHANDLE {
+        
         safe::Handle::handle(&self.raii) as ffi::SQLHANDLE      
     }
 }

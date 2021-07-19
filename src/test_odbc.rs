@@ -18,7 +18,7 @@ mod models;
 mod schema;
 mod odbc;
 use diesel::connection::*;
-use odbc::connection::raw_conn::*;
+use odbc::connection::*;
 use odbc_safe as safe;
 use odbc::connection::statement::{Statement, ResultSetState};
 use models::*;
@@ -202,6 +202,7 @@ fn main(){
         }
     }
 
+
     {     
         let stmt = Statement::with_parent(&conn).unwrap();
         let stmt = stmt.prepare("select CompanyID,CompanyCode,CompanyName from company").unwrap();                   
@@ -231,11 +232,10 @@ fn main(){
     }
 
     use self::schema::company::dsl::*;
-
-    let mut query_builder = odbc::MysqlQueryBuilder::new();    
-    let ast_pass = AstPass::<odbc::Mysql>::to_sql(&mut query_builder);    
-    let primary_key = company.primary_key();    
-    primary_key.walk_ast(ast_pass).unwrap();
+    // let mut query_builder = odbc::MysqlQueryBuilder::new();    
+    // let ast_pass = AstPass::<odbc::Mysql>::to_sql(&mut query_builder);    
+    // let primary_key = company.primary_key();    
+    // primary_key.walk_ast(ast_pass).unwrap();
 
     let results = company
         .filter(CompanyCode.eq("C0000005"))              
@@ -251,7 +251,8 @@ fn main(){
         println!("Credit Amount:{}", company1.CreditAmount.unwrap_or_default());
         // println!("Is Headquater:{}", company1.IsHeadOffice);
         // println!("Test Date:{}", company1.TestDate);
-    }
+    }    
+
 
     let _one_company = insert_into(company)
         .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CompanyType.eq("C"), CreateOffice.eq("SH"), CreditAmount.eq(BigDecimal::from_f64(100000.0))))

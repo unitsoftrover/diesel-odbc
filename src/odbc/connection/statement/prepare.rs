@@ -100,8 +100,7 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
             } else {
                 Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
             }
-        } else {
-            Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
+        } else { Ok(ResultSetState::NoData(Statement::with_raii(self.raii)))
         }
     }
 

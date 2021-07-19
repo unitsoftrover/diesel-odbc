@@ -1,6 +1,6 @@
 use super::ColumnDescriptor;
 use std::ffi::CStr;
-use crate::odbc::connection::bind::Flags;
+// use crate::odbc::connection::bind::Flags;
 use super::bind::*;
 
 pub struct StatementMetadata {

@@ -2,10 +2,8 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::models;
-use super::odbc::connection::raw_conn::RawConnection;
+use super::odbc::connection::RawConnection;
 use odbc_safe as safe;
-// use super::odbc::query_builder::limit_offset::*;
-
 
 /// Run query using Diesel to find user by uid and return it.
 pub fn find_user_by_uid(

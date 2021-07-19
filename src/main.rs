@@ -23,7 +23,7 @@ mod actions;
 mod models;
 mod schema;
 pub mod odbc;
-use odbc::connection::raw_conn::RawConnection;
+use odbc::connection::RawConnection;
 use odbc_safe as safe;
 
 pub fn main_test()

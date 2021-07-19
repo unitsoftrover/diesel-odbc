@@ -1,4 +1,3 @@
-use mysqlclient_sys as ffi;
 use std::mem;
 use std::ops::Index;
 use std::os::raw as libc;
@@ -220,8 +219,8 @@ pub struct BindData {
     pub bytes: Vec<u8>,
     pub length: super::ffi::SQLLEN,
     flags: Flags,
-    is_null: ffi::my_bool,
-    is_truncated: Option<ffi::my_bool>,
+    is_null: my_bool,
+    is_truncated: Option<my_bool>,
 }
 
 impl BindData {
@@ -296,7 +295,7 @@ impl BindData {
         bind.buffer_length = self.bytes.capacity() as libc::c_ulong;
         bind.length = &mut (self.length as u32);
         bind.is_null = &mut self.is_null;
-        bind.is_unsigned = self.flags.contains(Flags::UNSIGNED_FLAG) as ffi::my_bool;
+        bind.is_unsigned = self.flags.contains(Flags::UNSIGNED_FLAG) as my_bool;
 
         if let Some(ref mut is_truncated) = self.is_truncated {
             bind.error = is_truncated;
