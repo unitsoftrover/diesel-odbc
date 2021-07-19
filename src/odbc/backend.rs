@@ -1,23 +1,23 @@
-//! The MySQL backend
+//! The Odbc backend
 
 use byteorder::NativeEndian;
-use super::query_builder::MysqlQueryBuilder;
-use super::MysqlValue;
+use super::query_builder::OdbcQueryBuilder;
+use super::OdbcValue;
 use diesel::backend::*;
 use diesel::query_builder::bind_collector::RawBytesBindCollector;
 use diesel::sql_types::TypeMetadata;
 
 
-/// The MySQL backend
+/// The Odbc backend
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct Mysql;
+pub struct Odbc;
 
 #[allow(missing_debug_implementations)]
 /// Represents possible types, that can be transmitted as via the
-/// Mysql wire protocol
+/// Odbc wire protocol
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
-pub enum MysqlType {
+pub enum OdbcSqlType {
     /// A 8 bit signed integer
     Tiny,
     /// A 8 bit unsigned integer
@@ -62,21 +62,21 @@ pub enum MysqlType {
     Enum,
 }
 
-impl Backend for Mysql {
-    type QueryBuilder = MysqlQueryBuilder;
+impl Backend for Odbc {
+    type QueryBuilder = OdbcQueryBuilder;
     type BindCollector = RawBytesBindCollector<Self>;
     type ByteOrder = NativeEndian;
 }
 
-impl<'a> HasRawValue<'a> for Mysql {
-    type RawValue = MysqlValue<'a>;
+impl<'a> HasRawValue<'a> for Odbc {
+    type RawValue = OdbcValue<'a>;
 }
 
-impl TypeMetadata for Mysql {
-    type TypeMetadata = MysqlType;
+impl TypeMetadata for Odbc {
+    type TypeMetadata = OdbcSqlType;
     type MetadataLookup = ();
 }
 
-impl SupportsReturningClause for Mysql {}
-impl SupportsDefaultKeyword for Mysql {}
-impl UsesAnsiSavepointSyntax for Mysql {}
+impl SupportsReturningClause for Odbc {}
+impl SupportsDefaultKeyword for Odbc {}
+impl UsesAnsiSavepointSyntax for Odbc {}

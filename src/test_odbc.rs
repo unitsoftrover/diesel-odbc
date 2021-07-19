@@ -161,8 +161,8 @@ simple_clause!(
 fn main(){
     let select = ReturningClauseWithSelect(CompanyName);
 
-    let mut query_builder = odbc::MysqlQueryBuilder::new();    
-    let ast_pass = AstPass::<odbc::Mysql>::to_sql(&mut query_builder);    
+    let mut query_builder = odbc::OdbcQueryBuilder::new();    
+    let ast_pass = AstPass::<odbc::Odbc>::to_sql(&mut query_builder);    
     select.walk_ast(ast_pass).unwrap();
 
     let sum1 = add_as!(1,2,3);
@@ -232,8 +232,8 @@ fn main(){
     }
 
     use self::schema::company::dsl::*;
-    // let mut query_builder = odbc::MysqlQueryBuilder::new();    
-    // let ast_pass = AstPass::<odbc::Mysql>::to_sql(&mut query_builder);    
+    // let mut query_builder = odbc::OdbcQueryBuilder::new();    
+    // let ast_pass = AstPass::<odbc::Odbc>::to_sql(&mut query_builder);    
     // let primary_key = company.primary_key();    
     // primary_key.walk_ast(ast_pass).unwrap();
     
@@ -298,7 +298,7 @@ fn main(){
     // }
 
     let query = company.select(CompanyCode).filter(CompanyID.eq(1));
-    let query_str = debug_query::<odbc::Mysql, _>(&query).to_string();
+    let query_str = debug_query::<odbc::Odbc, _>(&query).to_string();
     println!("query：{:?}", query_str);
     let company_code = query.load::<String>(&conn).unwrap();
     println!("company code:{}", company_code[0]);        

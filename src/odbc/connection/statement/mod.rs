@@ -12,6 +12,7 @@ use super::RawConnection;
 use ffi::SQLRETURN::*;
 use ffi::Nullable;
 use std::marker::PhantomData;
+use crate::odbc::backend::OdbcSqlType;
 pub use self::types::OdbcType;
 pub use self::types::{SqlDate, SqlTime, SqlSsTime2, SqlTimestamp, EncodedValue};
 use super::environment;
@@ -19,7 +20,7 @@ pub use bind::Binds;
 pub use statement_iterator::StatementIterator;
 use odbc_safe::{AutocommitMode, AutocommitOn};
 use diesel::result::QueryResult;
-use statement_iterator::MysqlRow;
+use statement_iterator::OdbcRow;
 pub use metadata::*;
 use std::rc::Rc;
 
@@ -611,7 +612,7 @@ impl<S, R, AC: AutocommitMode> Statement<S, R, AC> {
     
     pub fn bind<Iter>(&mut self, binds: Iter) -> QueryResult<()>
     where
-        Iter: IntoIterator<Item = (MysqlType, Option<Vec<u8>>)>,
+        Iter: IntoIterator<Item = (OdbcSqlType, Option<Vec<u8>>)>,
     {
         let input_binds = Binds::from_input_data(binds)?;  
         let i = 1;
@@ -993,7 +994,6 @@ pub struct StatementUse<'b, S> {
     metadata: &'b StatementMetadata,
 }
 
-use super::super::backend::MysqlType;
 impl<'b, S> StatementUse<'b, S> {
 
     pub fn new(statement: &'b mut Statement<S, HasResult, AutocommitOn>, output_binds: &'b mut Binds, metadata:&'b StatementMetadata) -> Self {
@@ -1012,7 +1012,7 @@ impl<'b, S> StatementUse<'b, S> {
     //     self.statement.run()
     // }
 
-    pub fn step(&mut self) -> QueryResult<Option<MysqlRow>> {        
+    pub fn step(&mut self) -> QueryResult<Option<OdbcRow>> {        
         match self.statement.fetch(){
             Ok(_value) => {
                 // let fields = &self.metadata.fields();
@@ -1050,7 +1050,7 @@ impl<'b, S> StatementUse<'b, S> {
                 }
 
                 if let Some(mut _cur) = _value{
-                    Ok(Some(MysqlRow {
+                    Ok(Some(OdbcRow {
                         col_idx: 0,
                         binds: &mut self.output_binds,
                         metadata: &self.metadata,

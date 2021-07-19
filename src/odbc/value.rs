@@ -1,17 +1,17 @@
-use super::MysqlType;
+use super::OdbcSqlType;
 use diesel::deserialize;
 use crate::odbc::connection::ffi::{SQL_TIMESTAMP_STRUCT, SQL_TIME_STRUCT, SQL_DATE_STRUCT};
 use std::error::Error;
 
-/// Raw mysql value as received from the database
+/// Raw Odbc value as received from the database
 #[derive(Copy, Clone, Debug)]
-pub struct MysqlValue<'a> {
+pub struct OdbcValue<'a> {
     raw: &'a [u8],
-    tpe: MysqlType,
+    tpe: OdbcSqlType,
 }
 
-impl<'a> MysqlValue<'a> {
-    pub(crate) fn new(raw: &'a [u8], tpe: MysqlType) -> Self {
+impl<'a> OdbcValue<'a> {
+    pub(crate) fn new(raw: &'a [u8], tpe: OdbcSqlType) -> Self {
         Self { raw, tpe }
     }
 
@@ -20,20 +20,20 @@ impl<'a> MysqlValue<'a> {
         self.raw
     }
 
-    /// Get the mysql type of the current value
-    pub fn value_type(&self) -> MysqlType {
+    /// Get the Odbc type of the current value
+    pub fn value_type(&self) -> OdbcSqlType {
         self.tpe
     }
 
     /// Checks that the type code is valid, and interprets the data as a
-    /// `MYSQL_TIME` pointer
+    /// `Odbc_TIME` pointer
     // We use `ptr.read_unaligned()` to read the potential unaligned ptr,
     // so clippy is clearly wrong here
     // https://github.com/rust-lang/rust-clippy/issues/2881
     #[allow(dead_code, clippy::cast_ptr_alignment)]
     pub(crate) fn datetime_value(&self) -> deserialize::Result<SQL_TIMESTAMP_STRUCT> {
         match self.tpe {
-            MysqlType::Time | MysqlType::Date | MysqlType::DateTime | MysqlType::Timestamp => {
+            OdbcSqlType::Time | OdbcSqlType::Date | OdbcSqlType::DateTime | OdbcSqlType::Timestamp => {
                 let ptr = self.raw.as_ptr() as *const SQL_TIMESTAMP_STRUCT;
                 let result = unsafe { ptr.read_unaligned() };                
                 Ok(result)                
@@ -45,7 +45,7 @@ impl<'a> MysqlValue<'a> {
     #[allow(dead_code, clippy::cast_ptr_alignment)]
     pub(crate) fn time_value(&self) -> deserialize::Result<SQL_TIME_STRUCT> {
         match self.tpe {
-            MysqlType::Time => {
+            OdbcSqlType::Time => {
                 let ptr = self.raw.as_ptr() as *const SQL_TIME_STRUCT;
                 let result = unsafe { ptr.read_unaligned() };                
                 Ok(result)                
@@ -57,7 +57,7 @@ impl<'a> MysqlValue<'a> {
     #[allow(dead_code, clippy::cast_ptr_alignment)]
     pub(crate) fn date_value(&self) -> deserialize::Result<SQL_DATE_STRUCT> {
         match self.tpe {
-            MysqlType::Date => {
+            OdbcSqlType::Date => {
                 let ptr = self.raw.as_ptr() as *const SQL_DATE_STRUCT;
                 let result = unsafe { ptr.read_unaligned() };                
                 Ok(result)                
@@ -73,20 +73,20 @@ impl<'a> MysqlValue<'a> {
         use std::convert::TryInto;
 
         Ok(match self.tpe {
-            MysqlType::UnsignedTiny | MysqlType::Tiny => Tiny(self.raw[0] as i8),
-            MysqlType::UnsignedShort | MysqlType::Short => {
+            OdbcSqlType::UnsignedTiny | OdbcSqlType::Tiny => Tiny(self.raw[0] as i8),
+            OdbcSqlType::UnsignedShort | OdbcSqlType::Short => {
                 Small(i16::from_ne_bytes(self.raw.try_into()?))
             }
-            MysqlType::UnsignedLong | MysqlType::Long => {
+            OdbcSqlType::UnsignedLong | OdbcSqlType::Long => {
                 Medium(i32::from_ne_bytes(self.raw.try_into()?))
             }
-            MysqlType::UnsignedLongLong | MysqlType::LongLong => {
+            OdbcSqlType::UnsignedLongLong | OdbcSqlType::LongLong => {
                 Big(i64::from_ne_bytes(self.raw.try_into()?))
             }
-            MysqlType::Float => Float(f32::from_ne_bytes(self.raw.try_into()?)),
-            MysqlType::Double => Double(f64::from_ne_bytes(self.raw.try_into()?)),
+            OdbcSqlType::Float => Float(f32::from_ne_bytes(self.raw.try_into()?)),
+            OdbcSqlType::Double => Double(f64::from_ne_bytes(self.raw.try_into()?)),
 
-            MysqlType::Numeric => Decimal(self.raw),
+            OdbcSqlType::Numeric => Decimal(self.raw),
             _ => return Err(self.invalid_type_code("number")),
         })
     }
@@ -100,22 +100,22 @@ impl<'a> MysqlValue<'a> {
     }
 }
 
-/// Represents all possible forms MySQL transmits integers
+/// Represents all possible forms Odbc transmits integers
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub enum NumericRepresentation<'a> {
-    /// Correponds to `MYSQL_TYPE_TINY`
+    /// Correponds to `Odbc_TYPE_TINY`
     Tiny(i8),
-    /// Correponds to `MYSQL_TYPE_SHORT`
+    /// Correponds to `Odbc_TYPE_SHORT`
     Small(i16),
-    /// Correponds to `MYSQL_TYPE_INT24` and `MYSQL_TYPE_LONG`
+    /// Correponds to `Odbc_TYPE_INT24` and `Odbc_TYPE_LONG`
     Medium(i32),
-    /// Correponds to `MYSQL_TYPE_LONGLONG`
+    /// Correponds to `Odbc_TYPE_LONGLONG`
     Big(i64),
-    /// Correponds to `MYSQL_TYPE_FLOAT`
+    /// Correponds to `Odbc_TYPE_FLOAT`
     Float(f32),
-    /// Correponds to `MYSQL_TYPE_DOUBLE`
+    /// Correponds to `Odbc_TYPE_DOUBLE`
     Double(f64),
-    /// Correponds to `MYSQL_TYPE_DECIMAL` and `MYSQL_TYPE_NEWDECIMAL`
+    /// Correponds to `Odbc_TYPE_DECIMAL` and `Odbc_TYPE_NEWDECIMAL`
     Decimal(&'a [u8]),
 }

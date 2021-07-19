@@ -28,14 +28,14 @@ use result::{into_result, into_result_with};
 use odbc_safe::{AutocommitMode, AutocommitOn, AutocommitOff};
 use statement::*;
 use statement::StatementIterator;
-use super::backend::Mysql;
+use super::backend::Odbc;
 use diesel::query_builder::bind_collector::RawBytesBindCollector;
 
 /// Represents a connection to an ODBC data source
 //#[derive(Debug)]
 pub struct RawConnection<'env, AC: AutocommitMode> {
     // environment : Environment<Version3>,    
-    statement_cache: StatementCache<crate::odbc::Mysql, Statement<Prepared, NoResult, AC>>,
+    statement_cache: StatementCache<crate::odbc::Odbc, Statement<Prepared, NoResult, AC>>,
     safe : safe::Connection<'env, AC>,    
     transaction_manager: AnsiTransactionManager,
 }
@@ -68,7 +68,7 @@ impl<'env, AC: AutocommitMode> SimpleConnection for RawConnection<'env, AC> {
 
 
 impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
-    type Backend = super::Mysql;
+    type Backend = super::Odbc;
     //type TransactionManager = AnsiTransactionManager;
 
     fn establish(database_url: &str) -> ConnectionResult<Self> {
@@ -107,7 +107,7 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         let mut stmt = self.prepare_query(&query)?;   
 
         let mut types = Vec::new();
-        Mysql::row_metadata(&(), &mut types);
+        Odbc::row_metadata(&(), &mut types);
         let metadata = stmt.metadata().unwrap();
         let mut output_binds = statement::Binds::from_output_types(types, &metadata);
         let stmt = stmt.execute_statement(&mut output_binds).unwrap();        
@@ -256,7 +256,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
     fn prepare_query<T>(&self, source: &T) -> QueryResult<MaybeCached<Statement<Prepared, NoResult, AC>>>
     // fn prepare_query<T>(&self, source: &T) -> QueryResult<Statement<Prepared, NoResult, AC>>
     where
-        T: QueryFragment<crate::odbc::Mysql> + QueryId,            
+        T: QueryFragment<crate::odbc::Odbc> + QueryId,            
     {        
         let stmt = self
             .statement_cache
@@ -268,7 +268,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
                 // Ok(stmt1) 
                 
                 let stmt = Statement::with_parent(self).unwrap();     
-                // let mut query_builder = crate::odbc::MysqlQueryBuilder::new();
+                // let mut query_builder = crate::odbc::OdbcQueryBuilder::new();
                 // source.to_sql(&mut query_builder)?;
                 // let sql = query_builder.finish();
                 // println!("prepare sql:{}", sql);
@@ -383,7 +383,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
             })?; 
 
         // let stmt = Statement::with_parent(self).unwrap();     
-        // let mut query_builder = crate::odbc::MysqlQueryBuilder::new();
+        // let mut query_builder = crate::odbc::OdbcQueryBuilder::new();
         // source.to_sql(&mut query_builder)?;
         // let sql = query_builder.finish();
         // // println!("prepare sql:{}", sql);

@@ -1,4 +1,4 @@
-//! MySQL specific types
+//! Odbc specific types
 
 #[cfg(feature = "chrono")]
 mod date_and_time;
@@ -10,27 +10,27 @@ mod primitives;
 use byteorder::WriteBytesExt;
 use std::io::Write;
 use diesel::deserialize::{self, FromSql};
-use crate::odbc::{Mysql, MysqlType, MysqlValue};
+use crate::odbc::{Odbc, OdbcSqlType, OdbcValue};
 use diesel::query_builder::QueryId;
 use diesel::serialize::{self, IsNull, Output, ToSql};
 use diesel::sql_types::ops::*;
 use diesel::sql_types::*;
 
 
-impl ToSql<TinyInt, Mysql> for i8 {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
+impl ToSql<TinyInt, Odbc> for i8 {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Odbc>) -> serialize::Result {
         out.write_i8(*self).map(|_| IsNull::No).map_err(Into::into)
     }
 }
 
-impl FromSql<TinyInt, Mysql> for i8 {
-    fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<TinyInt, Odbc> for i8 {
+    fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
         let bytes = value.as_bytes();
         Ok(bytes[0] as i8)
     }
 }
 
-/// Represents the MySQL unsigned type.
+/// Represents the Odbc unsigned type.
 #[derive(Debug, Clone, Copy, Default, SqlType, QueryId)]
 pub struct Unsigned<ST>(ST);
 
@@ -66,172 +66,172 @@ where
     type Output = Unsigned<T::Output>;
 }
 
-impl ToSql<Unsigned<TinyInt>, Mysql> for u8 {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
-        ToSql::<TinyInt, Mysql>::to_sql(&(*self as i8), out)
+impl ToSql<Unsigned<TinyInt>, Odbc> for u8 {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Odbc>) -> serialize::Result {
+        ToSql::<TinyInt, Odbc>::to_sql(&(*self as i8), out)
     }
 }
 
-impl FromSql<Unsigned<TinyInt>, Mysql> for u8 {
-    fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let signed: i8 = FromSql::<TinyInt, Mysql>::from_sql(bytes)?;
+impl FromSql<Unsigned<TinyInt>, Odbc> for u8 {
+    fn from_sql(bytes: OdbcValue<'_>) -> deserialize::Result<Self> {
+        let signed: i8 = FromSql::<TinyInt, Odbc>::from_sql(bytes)?;
         Ok(signed as u8)
     }
 }
 
-impl ToSql<Unsigned<SmallInt>, Mysql> for u16 {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
-        ToSql::<SmallInt, Mysql>::to_sql(&(*self as i16), out)
+impl ToSql<Unsigned<SmallInt>, Odbc> for u16 {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Odbc>) -> serialize::Result {
+        ToSql::<SmallInt, Odbc>::to_sql(&(*self as i16), out)
     }
 }
 
-impl FromSql<Unsigned<SmallInt>, Mysql> for u16 {
-    fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let signed: i16 = FromSql::<SmallInt, Mysql>::from_sql(bytes)?;
+impl FromSql<Unsigned<SmallInt>, Odbc> for u16 {
+    fn from_sql(bytes: OdbcValue<'_>) -> deserialize::Result<Self> {
+        let signed: i16 = FromSql::<SmallInt, Odbc>::from_sql(bytes)?;
         Ok(signed as u16)
     }
 }
 
-impl ToSql<Unsigned<Integer>, Mysql> for u32 {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
-        ToSql::<Integer, Mysql>::to_sql(&(*self as i32), out)
+impl ToSql<Unsigned<Integer>, Odbc> for u32 {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Odbc>) -> serialize::Result {
+        ToSql::<Integer, Odbc>::to_sql(&(*self as i32), out)
     }
 }
 
-impl FromSql<Unsigned<Integer>, Mysql> for u32 {
-    fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let signed: i32 = FromSql::<Integer, Mysql>::from_sql(bytes)?;
+impl FromSql<Unsigned<Integer>, Odbc> for u32 {
+    fn from_sql(bytes: OdbcValue<'_>) -> deserialize::Result<Self> {
+        let signed: i32 = FromSql::<Integer, Odbc>::from_sql(bytes)?;
         Ok(signed as u32)
     }
 }
 
-impl ToSql<Unsigned<BigInt>, Mysql> for u64 {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
-        ToSql::<BigInt, Mysql>::to_sql(&(*self as i64), out)
+impl ToSql<Unsigned<BigInt>, Odbc> for u64 {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Odbc>) -> serialize::Result {
+        ToSql::<BigInt, Odbc>::to_sql(&(*self as i64), out)
     }
 }
 
-impl FromSql<Unsigned<BigInt>, Mysql> for u64 {
-    fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
-        let signed: i64 = FromSql::<BigInt, Mysql>::from_sql(bytes)?;
+impl FromSql<Unsigned<BigInt>, Odbc> for u64 {
+    fn from_sql(bytes: OdbcValue<'_>) -> deserialize::Result<Self> {
+        let signed: i64 = FromSql::<BigInt, Odbc>::from_sql(bytes)?;
         Ok(signed as u64)
     }
 }
 
 
-impl ToSql<Bool, Mysql> for bool {
-    fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
+impl ToSql<Bool, Odbc> for bool {
+    fn to_sql<W: Write>(&self, out: &mut Output<W, Odbc>) -> serialize::Result {
         let int_value = if *self { 1 } else { 0 };
-        <i32 as ToSql<Integer, Mysql>>::to_sql(&int_value, out)
+        <i32 as ToSql<Integer, Odbc>>::to_sql(&int_value, out)
     }
 }
 
-impl FromSql<Bool, Mysql> for bool {
-    fn from_sql(bytes: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<Bool, Odbc> for bool {
+    fn from_sql(bytes: OdbcValue<'_>) -> deserialize::Result<Self> {
         Ok(bytes.as_bytes().iter().any(|x| *x != 0))
     }
 }
 
 
-impl HasSqlType<Unsigned<TinyInt>> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::UnsignedTiny
+impl HasSqlType<Unsigned<TinyInt>> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::UnsignedTiny
     }
 }
 
-impl HasSqlType<Unsigned<SmallInt>> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::UnsignedShort
+impl HasSqlType<Unsigned<SmallInt>> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::UnsignedShort
     }
 }
 
-impl HasSqlType<Unsigned<Integer>> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::UnsignedLong
+impl HasSqlType<Unsigned<Integer>> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::UnsignedLong
     }
 }
 
-impl HasSqlType<Unsigned<BigInt>> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::UnsignedLongLong
-    }
-}
-
-
-impl HasSqlType<TinyInt> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Tiny
-    }
-}
-
-impl HasSqlType<SmallInt> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Short
-    }
-}
-
-impl HasSqlType<Integer> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Long
-    }
-}
-
-impl HasSqlType<BigInt> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::LongLong
-    }
-}
-
-impl HasSqlType<Bool> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Bit
+impl HasSqlType<Unsigned<BigInt>> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::UnsignedLongLong
     }
 }
 
 
-impl HasSqlType<Float> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Float
+impl HasSqlType<TinyInt> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Tiny
     }
 }
 
-impl HasSqlType<Double> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Double
+impl HasSqlType<SmallInt> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Short
     }
 }
 
-impl HasSqlType<Text> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::String
+impl HasSqlType<Integer> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Long
     }
 }
 
-impl HasSqlType<Binary> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Blob
+impl HasSqlType<BigInt> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::LongLong
     }
 }
 
-impl HasSqlType<Date> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Date
+impl HasSqlType<Bool> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Bit
     }
 }
 
-impl HasSqlType<Time> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Time
+
+impl HasSqlType<Float> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Float
     }
 }
 
-impl HasSqlType<Timestamp> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Timestamp
+impl HasSqlType<Double> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Double
     }
 }
 
-/// Represents the MySQL datetime type.
+impl HasSqlType<Text> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::String
+    }
+}
+
+impl HasSqlType<Binary> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Blob
+    }
+}
+
+impl HasSqlType<Date> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Date
+    }
+}
+
+impl HasSqlType<Time> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Time
+    }
+}
+
+impl HasSqlType<Timestamp> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Timestamp
+    }
+}
+
+/// Represents the Odbc datetime type.
 ///
 /// ### [`ToSql`] impls
 ///
@@ -251,16 +251,16 @@ pub struct Datetime;
 
 
 
-// impl ToSql<Numeric, Mysql> for BigDecimal {
-//     fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
+// impl ToSql<Numeric, Odbc> for BigDecimal {
+//     fn to_sql<W: Write>(&self, out: &mut Output<W, Odbc>) -> serialize::Result {
 //         write!(out, "{}", *self)
 //             .map(|_| IsNull::No)
 //             .map_err(Into::into)
 //     }
 // }
 
-// impl FromSql<Numeric, Mysql> for BigDecimal {
-//     fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+// impl FromSql<Numeric, Odbc> for BigDecimal {
+//     fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
 //         use crate::odbc::NumericRepresentation::*;
 
 //         match value.numeric_value()? {
@@ -278,8 +278,8 @@ pub struct Datetime;
 //     }
 // }
 
-impl HasSqlType<Numeric> for Mysql {
-    fn metadata(_lookup: &()) -> MysqlType {
-        MysqlType::Numeric
+impl HasSqlType<Numeric> for Odbc {
+    fn metadata(_lookup: &()) -> OdbcSqlType {
+        OdbcSqlType::Numeric
     }
 }

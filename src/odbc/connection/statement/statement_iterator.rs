@@ -3,7 +3,7 @@ use super::StatementUse;
 use diesel::deserialize::FromSqlRow;
 use diesel::result::Error::DeserializationError;
 use diesel::result::QueryResult;
-use crate::odbc::Mysql;
+use crate::odbc::Odbc;
 use super::bind::*;
 use super::metadata::*;
 use diesel::row::*;
@@ -26,7 +26,7 @@ impl<'b, ST, T, S> StatementIterator<'b, ST, T, S> {
 
 impl<'b, ST, T, S> Iterator for StatementIterator<'b, ST, T, S>
 where
-    T: FromSqlRow<ST,  Mysql>,
+    T: FromSqlRow<ST,  Odbc>,
 {
     type Item = QueryResult<T>;
 
@@ -48,14 +48,14 @@ where
 }
 
 #[derive(Clone)]
-pub struct MysqlRow<'a> {
+pub struct OdbcRow<'a> {
     pub col_idx: usize,
     pub binds: &'a Binds,
     pub metadata: &'a StatementMetadata,
 }
 
-impl<'a> Row<'a, Mysql> for MysqlRow<'a> {
-    type Field = MysqlField<'a>;
+impl<'a> Row<'a, Odbc> for OdbcRow<'a> {
+    type Field = OdbcField<'a>;
     type InnerPartialRow = Self;
 
     fn field_count(&self) -> usize {
@@ -67,7 +67,7 @@ impl<'a> Row<'a, Mysql> for MysqlRow<'a> {
         Self: RowIndex<I>,
     {
         let idx = self.idx(idx)?;
-        Some(MysqlField {
+        Some(OdbcField {
             bind: &self.binds[idx],
             metadata: &self.metadata.fields()[idx],
         })
@@ -78,7 +78,7 @@ impl<'a> Row<'a, Mysql> for MysqlRow<'a> {
     }
 }
 
-impl<'a> RowIndex<usize> for MysqlRow<'a> {
+impl<'a> RowIndex<usize> for OdbcRow<'a> {
     fn idx(&self, idx: usize) -> Option<usize> {
         if idx < self.field_count() {
             Some(idx)
@@ -88,7 +88,7 @@ impl<'a> RowIndex<usize> for MysqlRow<'a> {
     }
 }
 
-impl<'a, 'b> RowIndex<&'a str> for MysqlRow<'b> {
+impl<'a, 'b> RowIndex<&'a str> for OdbcRow<'b> {
     fn idx(&self, idx: &'a str) -> Option<usize> {
         self.metadata
             .fields()
@@ -99,12 +99,12 @@ impl<'a, 'b> RowIndex<&'a str> for MysqlRow<'b> {
     }
 }
 
-pub struct MysqlField<'a> {
+pub struct OdbcField<'a> {
     bind: &'a BindData,
     metadata: &'a ColumnDescriptor,
 }
 
-impl<'a> Field<'a, Mysql> for MysqlField<'a> {
+impl<'a> Field<'a, Odbc> for OdbcField<'a> {
     fn field_name(&self) -> Option<&'a str> {
         Some(self.metadata.name.as_str())
     }
@@ -113,7 +113,7 @@ impl<'a> Field<'a, Mysql> for MysqlField<'a> {
         self.bind.is_null()
     }
 
-    fn value(&self) -> Option<diesel::backend::RawValue<'a, Mysql>> {
+    fn value(&self) -> Option<diesel::backend::RawValue<'a, Odbc>> {
         self.bind.value()
     }
 }

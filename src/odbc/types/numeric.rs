@@ -6,21 +6,21 @@ pub mod bigdecimal {
     use std::io::prelude::*;
 
     use diesel::deserialize::{self, FromSql};
-    use crate::odbc::{Mysql, MysqlValue};
+    use crate::odbc::{Odbc, OdbcValue};
     use diesel::serialize::{self, IsNull, Output, ToSql};
     use diesel::sql_types::Numeric;
     use crate::odbc::connection::ffi;
 
-    impl ToSql<Numeric, Mysql> for BigDecimal {
-        fn to_sql<W: Write>(&self, out: &mut Output<W, Mysql>) -> serialize::Result {
+    impl ToSql<Numeric, Odbc> for BigDecimal {
+        fn to_sql<W: Write>(&self, out: &mut Output<W, Odbc>) -> serialize::Result {
             write!(out, "{}", *self)
                 .map(|_| IsNull::No)
                 .map_err(Into::into)
         }
     }
 
-    impl FromSql<Numeric, Mysql> for BigDecimal {
-        fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+    impl FromSql<Numeric, Odbc> for BigDecimal {
+        fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
             use crate::odbc::NumericRepresentation::*;
 
             match value.numeric_value()? {

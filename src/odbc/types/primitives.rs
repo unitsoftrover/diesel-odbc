@@ -2,7 +2,7 @@ use std::error::Error;
 use std::str::{self, FromStr};
 
 use diesel::deserialize::{self, FromSql};
-use crate::odbc::{Mysql, MysqlValue};
+use crate::odbc::{Odbc, OdbcValue};
 use diesel::sql_types::{BigInt, Binary, Double, Float, Integer, SmallInt, Text};
 
 fn decimal_to_integer<T>(bytes: &[u8]) -> deserialize::Result<T>
@@ -28,8 +28,8 @@ where
     }
 }
 
-impl FromSql<SmallInt, Mysql> for i16 {
-    fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<SmallInt, Odbc> for i16 {
+    fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
         use crate::odbc::NumericRepresentation::*;
 
         match value.numeric_value()? {
@@ -44,8 +44,8 @@ impl FromSql<SmallInt, Mysql> for i16 {
     }
 }
 
-impl FromSql<Integer, Mysql> for i32 {
-    fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<Integer, Odbc> for i32 {
+    fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
         use crate::odbc::NumericRepresentation::*;
 
         match value.numeric_value()? {
@@ -60,8 +60,8 @@ impl FromSql<Integer, Mysql> for i32 {
     }
 }
 
-impl FromSql<BigInt, Mysql> for i64 {
-    fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<BigInt, Odbc> for i64 {
+    fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
         use crate::odbc::NumericRepresentation::*;
 
         match value.numeric_value()? {
@@ -76,8 +76,8 @@ impl FromSql<BigInt, Mysql> for i64 {
     }
 }
 
-impl FromSql<Float, Mysql> for f32 {
-    fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<Float, Odbc> for f32 {
+    fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
         use crate::odbc::NumericRepresentation::*;
 
         match value.numeric_value()? {
@@ -92,8 +92,8 @@ impl FromSql<Float, Mysql> for f32 {
     }
 }
 
-impl FromSql<Double, Mysql> for f64 {
-    fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<Double, Odbc> for f64 {
+    fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
         use crate::odbc::NumericRepresentation::*;
 
         match value.numeric_value()? {
@@ -108,14 +108,14 @@ impl FromSql<Double, Mysql> for f64 {
     }
 }
 
-impl FromSql<Text, Mysql> for String {
-    fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<Text, Odbc> for String {
+    fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
         String::from_utf8(value.as_bytes().into()).map_err(Into::into)
     }
 }
 
-impl FromSql<Binary, Mysql> for Vec<u8> {
-    fn from_sql(value: MysqlValue<'_>) -> deserialize::Result<Self> {
+impl FromSql<Binary, Odbc> for Vec<u8> {
+    fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
         Ok(value.as_bytes().into())
     }
 }
