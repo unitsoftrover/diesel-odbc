@@ -164,8 +164,8 @@ impl Environment<Version3> {
         match try_into_option(result, self)? {
             Some((len1, len2)) => unsafe {
                 Ok(Some((
-                    crate::environment::DB_ENCODING.decode(&buf1[0..(len1 as usize)]).0,
-                    crate::environment::DB_ENCODING.decode(&buf2[0..(len2 as usize)]).0,
+                    crate::odbc::connection::environment::DB_ENCODING.decode(&buf1[0..(len1 as usize)]).0,
+                    crate::odbc::connection::environment::DB_ENCODING.decode(&buf2[0..(len2 as usize)]).0,
                 )))
             }
             None => Ok(None),

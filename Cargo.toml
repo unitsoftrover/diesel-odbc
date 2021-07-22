@@ -1,5 +1,5 @@
 [package]
-name = "diesel-example"
+name = "diesel-odbc"
 version = "1.0.0"
 authors = [
   "Nikolay Kim <fafhrd91@gmail.com>",
@@ -10,6 +10,16 @@ edition = "2018"
 [[bin]]
 name = "test_odbc"
 path = "src/test_odbc.rs"
+doc = false
+
+
+[[bin]]
+name = "main_odbc"
+path = "src/main.rs"
+doc = false
+
+[lib]
+path = "src/lib.rs"
 doc = false
 
 [dependencies]

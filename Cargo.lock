@@ -554,7 +554,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "diesel-example"
+name = "diesel-odbc"
 version = "1.0.0"
 dependencies = [
  "actix-web",

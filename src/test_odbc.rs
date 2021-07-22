@@ -6,32 +6,25 @@
 
 #[macro_use]
 extern crate diesel;
-extern crate odbc_sys;
 extern crate log;
-extern crate lazy_static;
-extern crate serde_derive;
-use odbc::connection::environment;
-pub use self::odbc_sys::*;
 
 mod actions;
 mod models;
 mod schema;
-mod odbc;
-use diesel::connection::*;
-use odbc::connection::*;
-use odbc_safe as safe;
-use odbc::connection::statement::{Statement, ResultSetState};
+
 use models::*;
 use diesel::prelude::*;
-use chrono::{NaiveDateTime};
 use diesel::debug_query;
-// use diesel::sql_types::Numeric;
-// use diesel::sql_types::Foldable;
 use diesel::sql_types::{SingleValue, SqlType};
 use diesel::dsl::*;
-use bigdecimal::*;
 use diesel::sql_types::*;
-// use diesel::expression::functions::aggregate_folding::*;
+use chrono::{NaiveDateTime};
+use bigdecimal::*;
+
+use diesel_odbc::connection::RawConnection;
+use diesel_odbc::{OdbcQueryBuilder,Odbc};
+use diesel_odbc::connection::statement::{Statement, ResultSetState};
+use odbc_safe as safe;
 
 macro_rules! add_as{
     ($a:expr)=>
@@ -161,8 +154,8 @@ simple_clause!(
 fn main(){
     let select = ReturningClauseWithSelect(CompanyName);
 
-    let mut query_builder = odbc::OdbcQueryBuilder::new();    
-    let ast_pass = AstPass::<odbc::Odbc>::to_sql(&mut query_builder);    
+    let mut query_builder = OdbcQueryBuilder::new();    
+    let ast_pass = AstPass::<Odbc>::to_sql(&mut query_builder);    
     select.walk_ast(ast_pass).unwrap();
 
     let sum1 = add_as!(1,2,3);
@@ -293,7 +286,7 @@ fn main(){
     // }
 
     let query = company.select(CompanyCode).filter(CompanyID.eq(1));
-    let query_str = debug_query::<odbc::Odbc, _>(&query).to_string();
+    let query_str = debug_query::<Odbc, _>(&query).to_string();
     println!("query：{:?}", query_str);
     let company_code = query.load::<String>(&conn).unwrap();
     println!("company code:{}", company_code[0]);        

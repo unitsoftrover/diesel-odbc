@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::models;
-use super::odbc::connection::RawConnection;
+use super::RawConnection;
 use odbc_safe as safe;
 
 /// Run query using Diesel to find user by uid and return it.

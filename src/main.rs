@@ -12,7 +12,6 @@ extern crate lazy_static;
 extern crate chrono;
 
 use log::*;
-use odbc::connection::environment;
 pub use self::odbc_sys::*;
 
 use actix_web::{get, middleware, post, web, App, Error, HttpResponse, HttpServer};

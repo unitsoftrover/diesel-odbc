@@ -110,7 +110,7 @@ where
                     message_length,
                     message,
                     message_string: unsafe {
-                        crate::environment::OS_ENCODING.decode(&message[0..message_length as usize]).0.into_owned()
+                        crate::odbc::connection::environment::OS_ENCODING.decode(&message[0..message_length as usize]).0.into_owned()
                     },
                 })
             }
