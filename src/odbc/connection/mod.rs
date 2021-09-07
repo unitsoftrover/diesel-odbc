@@ -102,7 +102,6 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         U: FromSqlRow<T::SqlType, Self::Backend>,
         Self::Backend: QueryMetadata<T::SqlType>,       
     {       
-
         let query = source.as_query();                
         let mut stmt = self.prepare_query(&query)?;   
 
@@ -110,13 +109,20 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         Odbc::row_metadata(&(), &mut types);
         let metadata = stmt.metadata().unwrap();
         let mut output_binds = statement::Binds::from_output_types(types, &metadata);
-        let stmt = stmt.execute_statement(&mut output_binds).unwrap();        
+        let stmt = stmt.execute_statement(&metadata, &mut output_binds).unwrap();        
         match stmt{
             ResultSetState::Data(mut stmt)=>{
                 let metadata = stmt.metadata().unwrap();
                 let statement_use = StatementUse::new(&mut stmt, &mut output_binds, &metadata);
                 let iter = StatementIterator::new(statement_use);                
-                iter.collect::<QueryResult<Vec<U>>>()                                            
+                let ret = iter.collect::<QueryResult<Vec<U>>>();
+                while let Ok(status) = stmt.get_more_results(){
+                    if status == 0{
+                        break;
+                    }
+                }
+
+                return ret;
             },
             ResultSetState::NoData(_stmt)=>{
                 // let statement_use = StatementUse::new(&mut stmt);
@@ -129,9 +135,9 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
 
     #[doc(hidden)]
     fn execute_returning_count<T>(&self, source: &T) -> QueryResult<usize>
-    where
+    where       
         T: QueryFragment<Self::Backend> + QueryId,
-    {
+    {        
         let stmt = self.prepare_query(source)?;       
         let stmt = stmt.execute().unwrap();
         match stmt{

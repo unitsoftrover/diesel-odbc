@@ -104,7 +104,7 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
         }
     }
 
-    pub fn execute_statement(&mut self, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {
+    pub fn execute_statement(&mut self, meta: &super::StatementMetadata, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {
         for i in 1..= binds.data.len() as u16 {
             let bind = &mut binds.data[i as usize - 1];
             match bind.tpe{
@@ -200,18 +200,33 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
         };
 
         if self.execute1().into_result(self)? {           
+            let meta_cols = binds.len() as i16;
+            loop{
 
-            let num_cols = self.num_result_cols1().into_result(self)?;
-            if num_cols > 0 {
-                Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())))
-            } else {
+                if self.num_result_cols1().into_result(self)? == meta_cols{
 
-                if self.get_more_results().unwrap() == 1{
-                    return Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())));
+                    let mut cols_match = true;
+                    let fields = meta.fields(); 
+                    for i in 1..= meta_cols{
+                        let col = &fields[i as usize - 1];             
+                        let col_current = self.describe_col(i as u16).unwrap();                   
+                        if col.name != col_current.name{
+                            cols_match = false;
+                        }
+                    }
+                    if cols_match{
+                        return Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())));
+                    }
                 }
-
-                Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
+                else{
+                    if let Ok(status) = self.get_more_results(){                                    
+                        if status == 0 {                        
+                            return Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())));
+                        }
+                    }
+                }
             }
+
         } else {
             Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
         }

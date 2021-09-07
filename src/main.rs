@@ -3,6 +3,7 @@
 //! Diesel does not support tokio, so we have to run it in separate threads using the web::block
 //! function which offloads blocking code (like Diesel's) in order to not block the server's thread.
 #![allow(dead_code)]
+#![recursion_limit="512"]
 
 #[macro_use]
 extern crate diesel;
