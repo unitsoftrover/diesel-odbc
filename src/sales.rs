@@ -1,6 +1,13 @@
 extern crate num_traits as traits;
 use traits::{FromPrimitive, ToPrimitive};
 use bigdecimal::BigDecimal;
+use super::safe::AutocommitOn;
+
+use diesel::prelude::*;
+use diesel::debug_query;
+use diesel::dsl::*;
+use diesel_odbc::connection::RawConnection;
+use diesel_odbc::Odbc;
 
 use super::models::*;
 
@@ -14,6 +21,7 @@ pub struct Quotation{
     pub list_quotation_ver : Vec<QuotationVer>,
     pub list_project : Vec<Project>,
     pub current_version : *mut QuotationVer,
+    pub status : Status,
 }
 
 
@@ -64,9 +72,28 @@ pub struct User<'a>{
     pub current_office : &'a Office,
 }
 
+#[derive(Default, Debug)]
+pub struct Status{
+    pub is_creating : bool,
+    pub is_deleted : bool,
+}
+
+impl Status{
+    pub fn save(&mut self){
+        if self.is_creating{
+            self.is_creating = false;
+        }
+
+        if self.is_deleted{
+            self.is_deleted = false;
+        }
+    }
+}
+
+
 impl Quotation{
-    pub fn new(user : User) -> Self {
-        let mut quotation = Quotation{
+    pub fn new() -> Self {
+        let mut quotation = Self{
             fields_a : Default::default(),
             fields_b : Default::default(),
             fields_c : Default::default(),
@@ -75,13 +102,10 @@ impl Quotation{
             list_quotation_ver: Vec::new(),
             list_project : Vec::new(),
             current_version : 0 as *mut QuotationVer,
+            status : Default::default(),
         };        
 
         let quotation_ptr = &mut quotation as *mut Quotation;
-
-        quotation.fields_b.CreateBy = user.user_code;
-        quotation.fields_b.OfficeCode = user.current_office.office_code.clone();
-        quotation.fields_b.CreateDate = chrono::Utc::now().naive_utc();
 
         quotation.list_project.push(Project{
             fields_a : Default::default(),
@@ -126,6 +150,219 @@ impl Quotation{
         quotation        
     }
     
+    pub fn new_sales_order(user : User) -> Self {
+        let mut quotation = Self::new();        
+        
+        quotation.fields_b.CreateBy = user.user_code;
+        quotation.fields_b.OfficeCode = user.current_office.office_code.clone();
+        quotation.fields_b.CreateDate = chrono::Utc::now().naive_utc();
+        
+        quotation.status.is_creating = true;
+        quotation        
+    }
+
+
+    pub fn load<'env>(conn: &RawConnection<'env, AutocommitOn>, quotation_id : i32)->Self{
+        use super::schema::quotation_a::dsl as qa;
+        use super::schema::quotation_b::dsl as qb;
+        use super::schema::quotation_c::dsl as qc;
+        use super::schema::quotation2_a::dsl as q2a;
+        use super::schema::quotation2_b::dsl as q2b;
+
+        use super::schema::project_a::dsl as pa;
+        use super::schema::project_b::dsl as pb;
+        use super::schema::project_c::dsl as pc;
+        use super::schema::project2_a::dsl as p2a;
+        use super::schema::project2_b::dsl as p2b;
+
+        use super::schema::quotationver_a::dsl as qva;
+        use super::schema::quotationver_b::dsl as qvb;
+        use super::schema::quotationverproject_a::dsl as qvpa;
+        use super::schema::quotationverproject_b::dsl as qvpb;
+
+        use super::schema::quotationitem_a::dsl as qia;
+        use super::schema::quotationitem_b::dsl as qib;
+        use super::schema::quotationitem_c::dsl as qic;
+        
+        let mut q_a = qa::quotation_a.filter(qa::QuotationID.eq(quotation_id)).load::<QuotationA>(conn).unwrap();
+        let mut q_b = qb::quotation_b.filter(qb::QuotationID.eq(quotation_id)).load::<QuotationB>(conn).unwrap();
+        let mut q_c = qc::quotation_c.filter(qc::QuotationID.eq(quotation_id)).load::<QuotationC>(conn).unwrap();
+        let mut q2_a = q2a::quotation2_a.filter(q2a::QuotationID.eq(quotation_id)).load::<Quotation2A>(conn).unwrap();
+        let mut q2_b = q2b::quotation2_b.filter(q2b::QuotationID.eq(quotation_id)).load::<Quotation2B>(conn).unwrap();
+
+        let p_a = pa::project_a.filter(pa::QuotationID.eq(quotation_id)).load::<ProjectA>(conn).unwrap();
+        let mut p_b = pb::project_b.filter(pb::QuotationID.eq(quotation_id)).load::<ProjectB>(conn).unwrap();
+        let mut p_c = pc::project_c.filter(pc::QuotationID.eq(quotation_id)).load::<ProjectC>(conn).unwrap();
+        let mut p2_a = p2a::project2_a.filter(p2a::QuotationID.eq(quotation_id)).load::<Project2A>(conn).unwrap();
+        let mut p2_b = p2b::project2_b.filter(p2b::QuotationID.eq(quotation_id)).load::<Project2B>(conn).unwrap();
+
+        let qv_a = qva::quotationver_a.filter(qva::QuotationID.eq(quotation_id)).load::<QuotationVerA>(conn).unwrap();
+        let mut qv_b = qvb::quotationver_b.filter(qvb::QuotationID.eq(quotation_id)).load::<QuotationVerB>(conn).unwrap();
+        let mut qvp_a = qvpa::quotationverproject_a.filter(qvpa::QuotationID.eq(quotation_id)).load::<QuotationVerProjectA>(conn).unwrap();
+        let mut qvp_b = qvpb::quotationverproject_b.filter(qvpb::QuotationID.eq(quotation_id)).load::<QuotationVerProjectB>(conn).unwrap();
+
+        let mut qi_a = qia::quotationitem_a.filter(qia::QuotationID.eq(quotation_id)).load::<QuotationItemA>(conn).unwrap();
+        let mut qi_b = qib::quotationitem_b.filter(qib::QuotationID.eq(quotation_id)).load::<QuotationItemB>(conn).unwrap();
+        let mut qi_c = qic::quotationitem_c.filter(qic::QuotationID.eq(quotation_id)).load::<QuotationItemC>(conn).unwrap();
+
+        let mut quotation = Quotation::new();
+        if q_a.len() == 1{
+            quotation.fields_a = q_a.pop().unwrap();
+        }
+        if q_b.len() == 1{
+            quotation.fields_b = q_b.pop().unwrap();
+        }
+        if q_c.len() == 1{
+            quotation.fields_c = q_c.pop().unwrap();
+        }
+        if q2_a.len() == 1{
+            quotation.fields2_a = q2_a.pop().unwrap();
+        }
+        if q2_b.len() == 1{
+            quotation.fields2_b = q2_b.pop().unwrap();
+        }
+        
+        let quotation_ptr = &mut quotation as * mut Quotation;    
+
+        let _ = p_a.into_iter().map(|pa|{
+            let mut pb : Option<ProjectB> = None;
+            for i in 0..p_b.len(){
+                if p_b.get(i).unwrap().ProjectNo == pa.ProjectNo{
+                    pb = Some(p_b.remove(i));
+                    break;
+                }
+            }
+
+            let mut pc : Option<ProjectC> = None;
+            for i in 0..p_c.len(){
+                if p_c.get(i).unwrap().ProjectNo == pa.ProjectNo{
+                    pc = Some(p_c.remove(i));
+                    break;
+                }
+            }
+
+            let mut p2a : Option<Project2A> = None;
+            for i in 0..p2_a.len(){
+                if p2_a.get(i).unwrap().ProjectNo == pa.ProjectNo{
+                    p2a = Some(p2_a.remove(i));
+                    break;
+                }
+            }
+
+            let mut p2b : Option<Project2B> = None;
+            for i in 0..p2_b.len(){
+                if p2_b.get(i).unwrap().ProjectNo == pa.ProjectNo{
+                    p2b = Some(p2_b.remove(i));
+                    break;
+                }
+            }
+
+            let project = Project{
+                fields_a : pa,
+                fields_b : pb.unwrap(),
+                fields_c : pc.unwrap(),
+                fields2_a: p2a.unwrap(),    
+                fields2_b: p2b.unwrap(),
+                quotation : quotation_ptr,
+                current_ver_project : 0 as *mut QuotationVerProject,
+            };
+            
+            quotation.list_project.truncate(0);
+            quotation.list_project.push(project);
+
+        }).collect::<()>();
+
+        let _ = qv_a.into_iter().map(|qva|{
+            let mut qvb : Option<QuotationVerB> = None;
+            for i in 0..qv_b.len(){
+                if qv_b.get(i).unwrap().VersionNo == qva.VersionNo{
+                    qvb = Some(qv_b.remove(i));
+                    break;
+                }
+            }
+
+            let mut version = QuotationVer{
+                fields_a : qva,
+                fields_b : qvb.unwrap(),            
+                list_quotation_ver_project : Default::default(),    
+                quotation : quotation_ptr,                
+            };
+
+            for i in 0..qvp_a.len(){
+                let qvpa = qvp_a.remove(i);
+
+                let mut qvpb : Option<QuotationVerProjectB> = None;
+                for j in 0..qv_b.len(){
+                    let current = qvp_b.get(j).unwrap();
+                    if current.VersionNo == qvpa.VersionNo && current.ProjectNo == qvpa.ProjectNo
+                    {
+                        qvpb = Some(qvp_b.remove(i));
+                        break;
+                    }
+                }
+    
+                let project_ptr = quotation.list_project.iter_mut().find(|p|(p.fields_a.ProjectNo == qvpa.ProjectNo)).unwrap() as * mut Project;
+                let mut ver_project = QuotationVerProject{
+                    fields_a : qvpa,
+                    fields_b : qvpb.unwrap(),            
+                    list_quotation_item : Default::default(),    
+                    project : project_ptr, 
+                    quotation_ver : &mut version as * mut QuotationVer,  
+                };
+                unsafe{(*project_ptr).current_ver_project = &mut ver_project as * mut QuotationVerProject;}
+
+                for j in 0..qi_a.len(){
+                    let qia = qi_a.remove(j);
+    
+                    let mut qib : Option<QuotationItemB> = None;
+                    for k in 0..qi_b.len(){
+                        let current = qi_b.get(k).unwrap();
+                        if current.VersionNo == qia.VersionNo 
+                            && current.ProjectNo == qia.ProjectNo
+                            && current.ItemNo == qia.ItemNo
+                        {
+                            qib = Some(qi_b.remove(k));
+                            break;
+                        }
+                    }
+
+                    let mut qic : Option<QuotationItemC> = None;
+                    for k in 0..qi_c.len(){
+                        let current = qi_c.get(k).unwrap();
+                        if current.VersionNo == qia.VersionNo 
+                            && current.ProjectNo == qia.ProjectNo
+                            && current.ItemNo == qia.ItemNo
+                        {
+                            qic = Some(qi_c.remove(k));
+                            break;
+                        }
+                    }
+        
+                    let quotation_item = QuotationItem{
+                        fields_a : qia,
+                        fields_b : qib.unwrap(),
+                        fields_c : qic.unwrap(),
+                    };
+                    ver_project.list_quotation_item.push(quotation_item);    
+                };
+                
+                version.list_quotation_ver_project.push(ver_project);    
+            };
+            
+            quotation.list_quotation_ver.truncate(0);
+            quotation.list_quotation_ver.push(version);
+
+        }).collect::<()>();
+        
+        
+        quotation
+    }
+
+    pub fn save(&mut self){
+
+
+    }
+
     pub fn calculate(&mut self){
 
         let version = unsafe{&mut *self.current_version};
@@ -139,10 +376,10 @@ impl Quotation{
             let mut commission_amount = BigDecimal::from(0);
             // let mut other_cost_amount = BigDecimal::from(0);
             let mut total_cost_amount = BigDecimal::from_f64(0.0).unwrap();
-            let mut total_qty_packages = 0.0;
-            let mut total_volume = 0.0;
-            let mut total_gross_weight = 0.0;
-            let mut total_net_weight = 0.0;
+            let mut total_qty_packages = BigDecimal::from(0);
+            let mut total_volume = BigDecimal::from(0);
+            let mut total_gross_weight = BigDecimal::from(0);
+            let mut total_net_weight = BigDecimal::from(0);
 
             let _ = ver_project.list_quotation_item.iter_mut().map(|item|
             {                
@@ -164,28 +401,28 @@ impl Quotation{
                 }
                 
                 if item.fields_c.QtyPerPackage.to_f64().unwrap() != 0.0 {
-                    item.fields_b.QtyOfPackages = (&item.fields_a.Quantity / &item.fields_c.QtyPerPackage).round(1).to_f64().unwrap();
+                    item.fields_b.QtyOfPackages = (&item.fields_a.Quantity / &item.fields_c.QtyPerPackage).round(1);
                 }
 
-                item.fields_b.TotalGrossWeight = item.fields_b.GrossWeightPerPackage * item.fields_b.QtyOfPackages;
-                item.fields_b.TotalNetWeight = item.fields_b.GrossWeightPerPackage * item.fields_b.QtyOfPackages;
+                item.fields_b.TotalGrossWeight = &item.fields_b.GrossWeightPerPackage * &item.fields_b.QtyOfPackages;
+                item.fields_b.TotalNetWeight = &item.fields_b.GrossWeightPerPackage * &item.fields_b.QtyOfPackages;
 
                 item.fields_c.AmountNoTax = (&item.fields_c.PriceNoTax * &item.fields_a.Quantity).round(2);
                 item.fields_a.QuoteAmount = (&item.fields_a.Price * &item.fields_a.Quantity).round(2);
                 item.fields_a.EstAmount = (&item.fields_a.EstUnitCost * &item.fields_a.Quantity).round(2);   
                 
-                item.fields_b.ComissionAmount = (&item.fields_b.Comission * &item.fields_a.Quantity.to_f64().unwrap() * 100.0).round() / 100.0;  
+                item.fields_b.ComissionAmount = (&item.fields_b.Comission * &item.fields_a.Quantity).round(2);  
                 item.fields_b.AmountReturnTax = (&item.fields_b.ReturnTaxRate * &item.fields_b.StockUnitCost).round(2);  
 
                 total_amount += &item.fields_a.QuoteAmount;
                 total_amount_notax += &item.fields_c.AmountNoTax;
-                commission_amount += BigDecimal::from_f64(item.fields_b.ComissionAmount).unwrap();                
+                commission_amount += &item.fields_b.ComissionAmount;                
                 total_cost_amount += &item.fields_a.EstAmount;
 
-                total_qty_packages += item.fields_b.QtyOfPackages;
-                total_volume += item.fields_b.TotalVolume.to_f64().unwrap();
-                total_gross_weight += item.fields_b.TotalGrossWeight;
-                total_net_weight += item.fields_b.TotalNetWeight;
+                total_qty_packages += &item.fields_b.QtyOfPackages;
+                total_volume += &item.fields_b.TotalVolume;
+                total_gross_weight += &item.fields_b.TotalGrossWeight;
+                total_net_weight += &item.fields_b.TotalNetWeight;
             });
             
             ver_project.fields_a.TotalAmount = total_amount;
@@ -195,10 +432,10 @@ impl Quotation{
             ver_project.fields_a.TotalCostAmount = total_cost_amount;
 
             let project = unsafe{&mut *ver_project.project};
-            project.fields_c.TotalQtyPackages = total_qty_packages;
-            project.fields_c.TotalVolume = total_volume;
-            project.fields_c.TotalGrossWeight = total_gross_weight;
-            project.fields_c.TotalNetWeight = total_net_weight;
+            project.fields_c.TotalQtyPackages = total_qty_packages.to_f64().unwrap();
+            project.fields_c.TotalVolume = total_volume.to_f64().unwrap();
+            project.fields_c.TotalGrossWeight = total_gross_weight.to_f64().unwrap();
+            project.fields_c.TotalNetWeight = total_net_weight.to_f64().unwrap();
 
         });
 
@@ -325,7 +562,7 @@ impl Quotation{
                             //throw new ExceptionBusiness("已生成生产通知单，不能取消备货，如要取消请先删除生产通知单。");
                         }
 
-                        if item.fields_a.QtyDeliveriedActual > 0.0{
+                        if item.fields_a.QtyDeliveriedActual > BigDecimal::from(0){
                             error_code = 7;
                             //throw new ExceptionBusiness(ExceptionBusiness.cstrSalesDisableCancelPrepardGoodsAfterCreateDelivery, "已发货，不能取消备货。");
                         }

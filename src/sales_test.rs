@@ -9,32 +9,6 @@ use super::models::*;
 use super::sales;
 use super::safe::*;
 
-trait Test{
-    fn test(&self);
-}
-
-struct TestA{    
-}
-
-struct TestB{    
-}
-
-impl Test for TestA{
-    fn test(&self){
-        println!("testa");
-    }
-}
-
-impl Test for TestB{
-    fn test(&self){
-        println!("testb");
-    }
-}
-
-fn test_trait(test : &dyn Test)
-{
-    test.test();
-}
 
 pub fn test<'env>(conn : &RawConnection<'env, AutocommitOn>)//RawConnection<'env, AutocommitOn>
 {
@@ -50,21 +24,34 @@ pub fn test<'env>(conn : &RawConnection<'env, AutocommitOn>)//RawConnection<'env
     };
     {
         use super::schema::quotation_a::dsl::*;
-        let mut quotation1 = sales::Quotation::new(user);
+        let mut quotation1 = sales::Quotation::new_sales_order(user);
         println!("bl_quotation:{:?}", quotation1);    
         quotation1.fields_a.LeadSource = "sales".to_string();
         quotation1.fields_a.QuotationBy = "admin".to_string();
         // quotation1.fields_a.QuotationContactID = 100;
         let query = insert_into(quotation_a).values((QuotationNo.eq("SH21-Q1000001"), LeadSource.eq(quotation1.fields_a.LeadSource), QuotationBy.eq(quotation1.fields_a.QuotationBy), QuotationTo.eq("1111")));
-        let debug = debug_query::<Odbc, _>(&query);
-        println!("query:{}", debug.to_string());
-        // query.execute(&conn).unwrap(); 
+        // let debug = debug_query::<Odbc, _>(&query);
+        // println!("query:{}", debug.to_string());
+        // query.execute(conn).unwrap(); 
+        
+        // let query = delete(quotation_a.filter(QuotationNo.eq("SH21-Q1000001")));
+        // let debug = debug_query::<Odbc, _>(&query);
+        // println!("query:{}", debug.to_string());
+        
+        // let result = query.get_result::<QuotationA>(&conn).unwrap();
+        // let result = query.load::<QuotationA>(conn).unwrap();
+        // println!("result:{:?}", result[0]);
 
         let qa = query.load::<QuotationA>(conn).unwrap();   
         if qa.len() > 0
         {
             let qa = qa.get(0).unwrap();
             println!("qa :{:?}", qa);
+            
+            let quotation = sales::Quotation::load(conn, qa.QuotationID);
+            println!("quotation:{:?}", quotation);            
+
+
             let query = delete(quotation_a.filter(QuotationID.eq(qa.QuotationID)));
             let debug = debug_query::<Odbc, _>(&query);
             println!("query:{}", debug.to_string());

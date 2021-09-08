@@ -268,8 +268,9 @@ pub struct QuotationVerA {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, PartialEq,Default)]
-#[primary_key(QuotationID)]
+#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[primary_key(QuotationID,VersionNo)]
+#[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "quotationver_b"]
 pub struct QuotationVerB {     
     pub	QuotationID	:	i32,
@@ -390,7 +391,7 @@ pub struct ProjectA {
     pub	StatusCheckedBy	:	String	,
     pub	DateCheckStatus	:	NaiveDateTime	,
     pub	LostReason	:	String	,
-    pub	WonReason	:	String	,
+    // pub	WonReason	:	String	,
     pub	PreferDateDelivery	:	NaiveDateTime	,
     pub	Deliveried	:	String	,
     pub	DelieveryCheckedBy	:	String	,
@@ -581,9 +582,9 @@ pub struct QuotationItemA
     pub	RequestVersionNo	:	i32	,
     pub	RequestProjectNo	:	i32	,
     pub	RequestItemNo	:	i32	,
-    pub	QtyInvoiced	:	f64	,
-    pub	QtyDeliveried	:	f64	,
-    pub	QtyDeliveriedActual	:	f64	,
+    pub	QtyInvoiced	:	BigDecimal	,
+    pub	QtyDeliveried	:	BigDecimal	,
+    pub	QtyDeliveriedActual	:	BigDecimal	,
 }
 
 #[allow(non_snake_case)]
@@ -599,18 +600,18 @@ pub struct QuotationItemB
     pub	ItemNo	:	i32	,
     pub	UnitBase	:	String	,
     pub	ChangeUnit	:	String	,
-    pub	UnitFactor1	:	f64	,
-    pub	UnitFactor2	:	f64	,
-    pub	TaxRate	:	f64	,
+    pub	UnitFactor1	:	BigDecimal	,
+    pub	UnitFactor2	:	BigDecimal	,
+    pub	TaxRate	:	BigDecimal	,
     pub	DateDelivery	:	NaiveDateTime	,
-    pub	Comission	:	f64	,
-    pub	ComissionAmount	:	f64	,
-    pub	QtyOfPackages	:	f64	,
+    pub	Comission	:	BigDecimal	,
+    pub	ComissionAmount	:	BigDecimal	,
+    pub	QtyOfPackages	:	BigDecimal	,
     pub	PackingType	:	String	,
-    pub	NetWeightPerPackage	:	f64	,
-    pub	TotalNetWeight	:	f64	,
-    pub	GrossWeightPerPackage	:	f64	,
-    pub	TotalGrossWeight	:	f64	,
+    pub	NetWeightPerPackage	:	BigDecimal	,
+    pub	TotalNetWeight	:	BigDecimal	,
+    pub	GrossWeightPerPackage	:	BigDecimal	,
+    pub	TotalGrossWeight	:	BigDecimal	,
     pub	BatchNo	:	String	,
     pub	StockUnitCost	:	BigDecimal	,
     pub	StockCostAmount	:	BigDecimal	,
@@ -665,7 +666,7 @@ pub struct QuotationItemC
     pub	AmountNoTax	:	BigDecimal	,
     pub	AmountTax	:	BigDecimal	,
     pub	CaseVolume	:	BigDecimal	,
-    pub	QtyForecast	:	BigDecimal	,
+    // pub	QtyForecast	:	BigDecimal	,
     pub	ChineseRemark	:	String	,
     pub	ServiceProjectID	:	i32	,
     pub	PurchasePrice	:	BigDecimal	,
