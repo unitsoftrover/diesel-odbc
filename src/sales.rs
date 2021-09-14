@@ -1,4 +1,6 @@
 extern crate num_traits as traits;
+use std::borrow::BorrowMut;
+
 use traits::{FromPrimitive, ToPrimitive};
 use bigdecimal::BigDecimal;
 use super::safe::AutocommitOn;
@@ -10,6 +12,27 @@ use diesel_odbc::connection::RawConnection;
 use diesel_odbc::Odbc;
 
 use super::models::*;
+use super::schema::quotation_a::dsl as qa;
+use super::schema::quotation_b::dsl as qb;
+use super::schema::quotation_c::dsl as qc;
+use super::schema::quotation2_a::dsl as q2a;
+use super::schema::quotation2_b::dsl as q2b;
+
+use super::schema::project_a::dsl as pa;
+use super::schema::project_b::dsl as pb;
+use super::schema::project_c::dsl as pc;
+use super::schema::project2_a::dsl as p2a;
+use super::schema::project2_b::dsl as p2b;
+
+use super::schema::quotationver_a::dsl as qva;
+use super::schema::quotationver_b::dsl as qvb;
+use super::schema::quotationverproject_a::dsl as qvpa;
+use super::schema::quotationverproject_b::dsl as qvpb;
+
+use super::schema::quotationitem_a::dsl as qia;
+use super::schema::quotationitem_b::dsl as qib;
+use super::schema::quotationitem_c::dsl as qic;
+
 
 #[derive(Debug)]
 pub struct Quotation{    
@@ -34,7 +57,7 @@ pub struct Project{
     pub fields2_b: Project2B,
     pub quotation : *mut Quotation,
     pub current_ver_project : *mut QuotationVerProject,
-
+    pub status : Status,
 }
 
 #[derive(Debug)]
@@ -43,6 +66,7 @@ pub struct QuotationVer{
     pub fields_b: QuotationVerB,
     pub list_quotation_ver_project : Vec<QuotationVerProject>,
     pub quotation : *mut Quotation,
+    pub status : Status,
 }
 
 #[derive(Debug)]
@@ -52,6 +76,7 @@ pub struct QuotationVerProject{
     pub project : *mut Project,    
     pub list_quotation_item : Vec<QuotationItem>,  
     pub quotation_ver : *mut QuotationVer,
+    pub status : Status,
 }
 
 #[derive(Debug)]
@@ -59,6 +84,7 @@ pub struct QuotationItem{
     pub fields_a: QuotationItemA,    
     pub fields_b: QuotationItemB,
     pub fields_c: QuotationItemC,    
+    pub status : Status,
 }
 
 pub struct Office{    
@@ -115,16 +141,21 @@ impl Quotation{
             fields2_b : Default::default(),
             quotation : quotation_ptr,
             current_ver_project : 0 as *mut QuotationVerProject,
+            status : Default::default(),
         });
 
         let project = quotation.list_project.get_mut(0).unwrap();
 
-        let version = QuotationVer{
+        let mut version = QuotationVer{
             fields_a : Default::default(),
             fields_b : Default::default(),
             list_quotation_ver_project : Vec::new(),
             quotation : quotation_ptr,
+            status : Default::default(),
         };
+        version.fields_a.VersionNo = 1;
+        version.fields_b.VersionNo = 1;
+
         quotation.list_quotation_ver.push(version);
         let version = quotation.list_quotation_ver.get_mut(0).unwrap();
         version.fields_a.VersionNo = 1;
@@ -139,14 +170,12 @@ impl Quotation{
             project : project,
             list_quotation_item : Vec::new(),            
             quotation_ver : version_ptr,
+            status : Default::default(),
         });
 
         let ver_project = version.list_quotation_ver_project.get_mut(0).unwrap();
-        let n = ver_project.list_quotation_item.len();        
-        println!("item length:{}", n);
+        project.current_ver_project = ver_project as *mut QuotationVerProject;
 
-
-        println!("quotation={:?}", quotation);
         quotation        
     }
     
@@ -154,35 +183,23 @@ impl Quotation{
         let mut quotation = Self::new();        
         
         quotation.fields_b.CreateBy = user.user_code;
-        quotation.fields_b.OfficeCode = user.current_office.office_code.clone();
+        quotation.fields_a.OfficeCode = user.current_office.office_code.clone();
         quotation.fields_b.CreateDate = chrono::Utc::now().naive_utc();
         
         quotation.status.is_creating = true;
+        quotation.list_project.iter_mut().for_each(|project|project.status.is_creating = true);        
+        quotation.list_quotation_ver.iter_mut().for_each(|version|{
+            version.status.is_creating = true;
+            version.list_quotation_ver_project.iter_mut().for_each(|ver_project|{
+                ver_project.status.is_creating = true;
+            });
+        }); 
+
         quotation        
     }
 
 
     pub fn load<'env>(conn: &RawConnection<'env, AutocommitOn>, quotation_id : i32)->Self{
-        use super::schema::quotation_a::dsl as qa;
-        use super::schema::quotation_b::dsl as qb;
-        use super::schema::quotation_c::dsl as qc;
-        use super::schema::quotation2_a::dsl as q2a;
-        use super::schema::quotation2_b::dsl as q2b;
-
-        use super::schema::project_a::dsl as pa;
-        use super::schema::project_b::dsl as pb;
-        use super::schema::project_c::dsl as pc;
-        use super::schema::project2_a::dsl as p2a;
-        use super::schema::project2_b::dsl as p2b;
-
-        use super::schema::quotationver_a::dsl as qva;
-        use super::schema::quotationver_b::dsl as qvb;
-        use super::schema::quotationverproject_a::dsl as qvpa;
-        use super::schema::quotationverproject_b::dsl as qvpb;
-
-        use super::schema::quotationitem_a::dsl as qia;
-        use super::schema::quotationitem_b::dsl as qib;
-        use super::schema::quotationitem_c::dsl as qic;
         
         let mut q_a = qa::quotation_a.filter(qa::QuotationID.eq(quotation_id)).load::<QuotationA>(conn).unwrap();
         let mut q_b = qb::quotation_b.filter(qb::QuotationID.eq(quotation_id)).load::<QuotationB>(conn).unwrap();
@@ -224,7 +241,7 @@ impl Quotation{
         
         let quotation_ptr = &mut quotation as * mut Quotation;    
 
-        let _ = p_a.into_iter().map(|pa|{
+        p_a.into_iter().for_each(|pa|{
             let mut pb : Option<ProjectB> = None;
             for i in 0..p_b.len(){
                 if p_b.get(i).unwrap().ProjectNo == pa.ProjectNo{
@@ -265,14 +282,14 @@ impl Quotation{
                 fields2_b: p2b.unwrap(),
                 quotation : quotation_ptr,
                 current_ver_project : 0 as *mut QuotationVerProject,
+                status : Default::default(),
             };
             
             quotation.list_project.truncate(0);
             quotation.list_project.push(project);
+        });
 
-        }).collect::<()>();
-
-        let _ = qv_a.into_iter().map(|qva|{
+        qv_a.into_iter().for_each(|qva|{
             let mut qvb : Option<QuotationVerB> = None;
             for i in 0..qv_b.len(){
                 if qv_b.get(i).unwrap().VersionNo == qva.VersionNo{
@@ -286,6 +303,7 @@ impl Quotation{
                 fields_b : qvb.unwrap(),            
                 list_quotation_ver_project : Default::default(),    
                 quotation : quotation_ptr,                
+                status : Default::default(),
             };
 
             for i in 0..qvp_a.len(){
@@ -308,6 +326,7 @@ impl Quotation{
                     list_quotation_item : Default::default(),    
                     project : project_ptr, 
                     quotation_ver : &mut version as * mut QuotationVer,  
+                    status : Default::default(),
                 };
                 unsafe{(*project_ptr).current_ver_project = &mut ver_project as * mut QuotationVerProject;}
 
@@ -342,6 +361,7 @@ impl Quotation{
                         fields_a : qia,
                         fields_b : qib.unwrap(),
                         fields_c : qic.unwrap(),
+                        status : Default::default(),
                     };
                     ver_project.list_quotation_item.push(quotation_item);    
                 };
@@ -352,15 +372,61 @@ impl Quotation{
             quotation.list_quotation_ver.truncate(0);
             quotation.list_quotation_ver.push(version);
 
-        }).collect::<()>();
+        });
         
         
         quotation
     }
 
-    pub fn save(&mut self){
+    pub fn save<'env>(&mut self, conn : &RawConnection<'env, AutocommitOn>){
+        if self.status.is_creating{
+            let q_a = insert_into(qa::quotation_a).values(&self.fields_a).load::<QuotationA>(conn).unwrap();
+            if q_a.len()==1{
+                let q_a = q_a.get(0).unwrap();
+                self.fields_a = q_a.clone();
+                self.fields_b.QuotationID = q_a.QuotationID;
+                self.fields_c.QuotationID = q_a.QuotationID;
+                self.fields2_a.QuotationID = q_a.QuotationID;
+                self.fields2_b.QuotationID = q_a.QuotationID;
+            }
 
+            let q2_a = insert_into(q2a::quotation2_a).values(&self.fields2_a).load::<Quotation2A>(conn).unwrap();
+            if q2_a.len()==1{
+                let q2_a = q2_a.get(0).unwrap();
+                self.fields2_a = q2_a.clone();                
+            }
 
+        }
+        else{
+            update(qa::quotation_a.filter(qa::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields_a).load::<QuotationA>(conn).unwrap();
+            update(q2a::quotation2_a.filter(q2a::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields2_a).load::<Quotation2A>(conn).unwrap();
+        }
+
+        update(qb::quotation_b.filter(qb::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields_b).load::<QuotationB>(conn).unwrap();
+        update(qc::quotation_c.filter(qc::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields_c).load::<QuotationC>(conn).unwrap();
+        update(q2b::quotation2_b.filter(q2b::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields2_b).load::<Quotation2B>(conn).unwrap();
+        
+        for version in &mut self.list_quotation_ver
+        {
+            version.fields_a.QuotationID = self.fields_a.QuotationID;
+            version.fields_b.QuotationID = self.fields_a.QuotationID;
+
+            if version.status.is_creating{
+                let qv_a = insert_into(qva::quotationver_a).values(&version.fields_a).load::<QuotationVerA>(conn).unwrap();
+                if qv_a.len()==1{
+                    let qv_a = qv_a.get(0).unwrap();
+                    version.fields_a = qv_a.clone();
+                    version.fields_b.VersionNo = qv_a.VersionNo;    
+                }
+            }
+            else
+            {
+                update(qva::quotationver_a.filter(qva::QuotationID.eq(self.fields_a.QuotationID))).set(&version.fields_a).load::<QuotationVerA>(conn).unwrap();
+            }
+            update(qvb::quotationver_b.filter(qvb::QuotationID.eq(self.fields_a.QuotationID))).set(&version.fields_b).load::<QuotationVerB>(conn).unwrap();
+        };
+
+        
     }
 
     pub fn calculate(&mut self){

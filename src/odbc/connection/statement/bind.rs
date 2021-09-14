@@ -220,7 +220,8 @@ pub struct BindData {
     pub length: super::ffi::SQLLEN,
     flags: Flags,
     is_null: my_bool,
-    is_truncated: Option<my_bool>,
+    pub is_truncated: Option<my_bool>,
+    pub field_name : String
 }
 
 impl BindData {
@@ -236,6 +237,7 @@ impl BindData {
             is_null,
             is_truncated: None,
             flags,
+            field_name : "".to_string(),
         }
     }
 
@@ -256,6 +258,7 @@ impl BindData {
             is_null: 0,
             is_truncated: Some(0),
             flags,
+            field_name : field.name.clone(),
         }
     }
 
@@ -278,7 +281,7 @@ impl BindData {
     }
 
     pub fn is_null(&self) -> bool {
-        self.is_null != 0
+        self.length == -1
     }
 
     fn update_buffer_length(&mut self) {

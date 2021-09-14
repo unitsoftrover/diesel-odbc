@@ -110,7 +110,11 @@ impl FromSql<Double, Odbc> for f64 {
 
 impl FromSql<Text, Odbc> for String {
     fn from_sql(value: OdbcValue<'_>) -> deserialize::Result<Self> {
-        String::from_utf8(value.as_bytes().into()).map_err(Into::into)
+        let mut ret = String::from_utf8(value.as_bytes().into());
+        if let Ok(str) = &ret{
+            ret = Ok(str.trim_end_matches('\0').to_string());
+        }
+        ret.map_err(Into::into)
     }
 }
 

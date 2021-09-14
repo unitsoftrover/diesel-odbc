@@ -1,3 +1,5 @@
+use diesel::sql_types::Nullable;
+
 table! {
     users (id) {
         id -> Text,
@@ -30,18 +32,22 @@ table! {
 
 table! {    
     #[sql_name = "quotation"]
-    quotation_a(QuotationNo) {        
-        QuotationID	->	Integer,self_increase_id=false,       
+    quotation_x(QuotationNo) {        
+        QuotationID	->	Integer,self_increase_id=true,  
+        CompanyID	->	Nullable<Integer>,
+        CompanyName	->	VarChar,
+        Operator	->	Nullable<VarChar>,
         QuotationNo	->	VarChar,
-        LeadSource	->	VarChar,
-        QuotationBy	->	VarChar,
+        LeadSource	->	Char,
+        QuotationBy	->	Char,
+        // CreateDate	->	Timestamp,
         QuotationTo	->	VarChar,
         AddressQuotation	->	VarChar,
         CityQuotation	->	VarChar,
         ProvinceQuotation	->	VarChar,
         CountryQuotation	->	VarChar,
         PostCodeQuotation	->	VarChar,
-        QuotationContactID	->	Integer,        
+        QuotationContactID	->	Nullable<Integer>,        
         ContactQuotation	->	VarChar,
         TelQuotation	->	VarChar,
         FaxQuotation	->	VarChar,
@@ -53,7 +59,7 @@ table! {
         ProvinceBill	->	VarChar,
         CountryBill	->	VarChar,
         PostCodeBill	->	VarChar,
-        BillingContactID	->	Integer,
+        BillingContactID	->	Nullable<Integer>,
         ContactBill	->	VarChar,
         TelBill	->	VarChar,
         FaxBill	->	VarChar,
@@ -64,33 +70,67 @@ table! {
 
 table! {    
     #[sql_name = "quotation"]
+    quotation_a(QuotationID) {        
+        QuotationID	->	Integer,self_increase_id=true,       
+        QuotationNo	->	VarChar,
+        LeadSource	->	VarChar,
+        QuotationBy	->	VarChar,
+        QuotationTo	->	VarChar,
+        AddressQuotation	->	VarChar,
+        CityQuotation	->	VarChar,
+        ProvinceQuotation	->	VarChar,
+        CountryQuotation	->	VarChar,
+        PostCodeQuotation	->	VarChar,
+        QuotationContactID	->	Nullable<Integer>,        
+        ContactQuotation	->	VarChar,
+        TelQuotation	->	VarChar,
+        FaxQuotation	->	VarChar,
+        MobileQuotation	->	VarChar,
+        EmailQuotation	->	VarChar,
+        BillTo	->	VarChar,
+        AddressBill	->	VarChar,
+        CityBill	->	VarChar,
+        ProvinceBill	->	VarChar,
+        CountryBill	->	VarChar,
+        PostCodeBill	->	VarChar,
+        BillingContactID	->	Nullable<Integer>,
+        ContactBill	->	VarChar,
+        TelBill	->	VarChar,
+        FaxBill	->	VarChar,
+        MobileBill	->	VarChar,
+        EmailBill	->	VarChar,
+        OfficeCode	->	VarChar	,
+    }
+}
+
+table! {    
+    #[sql_name = "quotation"]
     quotation_b (QuotationID) {
         QuotationID	->	Integer,      
-        CompanyID	->	Integer,
+        // CompanyID	->	Nullable<Integer>,
         CompanyCode	->	VarChar,
         CompanyName	->	VarChar,
-        ContactPersonID	->	Integer	,
+        // ContactPersonID	->	Nullable<Integer>,
         SalClient	->	VarChar,
         FirstNameClient	->	VarChar,
         LastNameClient	->	VarChar	,
-        Salesman	->	VarChar	,
-        CSR	->	VarChar,
-        Operator	->	VarChar	,
+        // Salesman	->	Nullable<VarChar>,
+        // CSR	->	Nullable<VarChar>,
+        // Operator	->	Nullable<VarChar>,
         CreateDate	->	Timestamp	,
-        CreateBy	->	VarChar	,
-        OfficeCode	->	VarChar	,
+        CreateBy	->	Char	,
         PaymentParty	->	VarChar	,
         ClientType	->	VarChar	,
-        CurrentVersion	->	Integer	,
+        // CurrentVersion	->	Nullable<Integer>,
         OpportunityDescription	->	VarChar	,
         OfficeService	->	VarChar	,
         Seller	->	VarChar	,
         BankClient	->	VarChar	,
-        MultiShipment	->	Bool	,
-        IsSubmitedOnline	->	Bool	,
-        IsSubmited	->	Bool	,
-        SubmitDate	->	Timestamp	,
-        IsRejectToClient	->	Bool	,
+        // MultiShipment	->	Bool	,
+        // IsSubmitedOnline	->	Bool	,
+        // IsSubmited	->	Bool	,
+        // SubmitDate	->	Timestamp	,
+        // IsRejectToClient	->	Bool	,
 
     }
 }
@@ -209,7 +249,7 @@ table! {
 
 table! {
     #[sql_name = "quotationver"]
-    quotationver_a(QuotationID, VersionNo)
+    quotationver_a(QuotationID)
     {
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,
@@ -246,7 +286,7 @@ table! {
 
 table! {    
     #[sql_name = "quotationver"]
-    quotationver_b (QuotationID,VersionNo) {
+    quotationver_b (QuotationID) {
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,             
         BreachDuty	->	Varchar	,

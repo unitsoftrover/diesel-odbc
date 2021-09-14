@@ -920,7 +920,7 @@ impl<S, AC: AutocommitMode> Statement<S, HasResult, AC> {
         if self.fetch1().into_result(self)? {
             Ok(Some(Cursor {
                 stmt: self,
-                buffer: vec![0; 512],
+                buffer: vec![0; 10000],
             }))
         } else {
             Ok(None)
@@ -1013,18 +1013,59 @@ impl<'b, S> StatementUse<'b, S> {
     // }
 
     pub fn step(&mut self) -> QueryResult<Option<OdbcRow>> {        
+        let mut row_index = 0;
         match self.statement.fetch(){
             Ok(_value) => {
-                // let fields = &self.metadata.fields();
                 let bind_datas = &mut self.output_binds.data;
                 for i in 0..bind_datas.len(){
                     let bind = &mut bind_datas[i];
-                    // let field = &fields[i];
                     match bind.tpe{
                         ffi::SqlDataType::SQL_EXT_WCHAR | ffi::SqlDataType::SQL_EXT_WVARCHAR | ffi::SqlDataType::SQL_EXT_WLONGVARCHAR =>{
-                            let code_utf16 =  encoding_rs::UTF_16LE.decode(&bind.bytes).0;                               
-                            let bytes = (&code_utf16).as_bytes().to_vec();
-                            let _ = std::mem::replace(&mut bind.bytes, bytes);                               
+                                                        
+                            if bind.is_null(){
+                                bind.length = 0;
+                                bind.is_truncated = None;                                
+                            }
+                            else{
+                                let code_utf16 =  encoding_rs::UTF_16LE.decode(&bind.bytes).0;                                
+                                let mut bytes = (&code_utf16).as_bytes().to_vec();
+                                for pos in 0..bytes.len(){
+                                    if bytes[pos] == 0u8{
+                                        bytes = bytes[0..pos].to_vec();
+                                        break;
+                                    }
+                                }
+
+                                if bind.bytes.len() > bytes.len(){
+                                    let blank_nums = bind.bytes.len() - bytes.len();
+                                    bytes.append(&mut [0u8].repeat(blank_nums).to_vec());
+                                }
+                                else
+                                {
+                                    println!("byte length is not enough,row index:{} column index:{} field name:{}", row_index, i, bind.field_name);
+                                }
+                                
+                                bind.length = bytes.len() as i64;
+                                for i in 0..bind.length as usize{
+                                    bind.bytes[i] = bytes[i];
+                                }
+                            }
+                        },
+                        ffi::SqlDataType::SQL_CHAR | ffi::SqlDataType::SQL_VARCHAR | ffi::SqlDataType::SQL_EXT_LONGVARCHAR =>{
+                            if bind.is_null(){
+                                bind.length = 0;
+                                bind.is_truncated = None;                                
+                            }
+                        },
+                        ffi::SqlDataType::SQL_EXT_BIT =>{                            
+                            if bind.is_null(){
+                                unsafe {                                
+                                    let para = bind.bytes.as_ptr() as *mut bool;
+                                    (*para) = false;
+                                }                                
+                                bind.length = 1;
+                                bind.is_truncated = None;                                
+                            }
                         },
                         // ffi::SqlDataType::SQL_DATE=>{
                         //     // println!("date: {:?}", bind.bytes);
@@ -1032,9 +1073,32 @@ impl<'b, S> StatementUse<'b, S> {
                         // ffi::SqlDataType::SQL_TIME=>{
                         //     println!("time: {:?}", bind.bytes);
                         // },
-                        // ffi::SqlDataType::SQL_DATETIME=>{
-                        //     println!("datetime: {:?}", bind.bytes);
-                        // },
+                        ffi::SqlDataType::SQL_DATETIME=>{
+                            if bind.is_null() {
+                                unsafe{
+                                    let mut para = bind.bytes.as_ptr() as *mut ffi::SQL_TIMESTAMP_STRUCT;
+                                    (*para).year = 0;
+                                    (*para).month = 1;
+                                    (*para).day = 1;
+                                    (*para).hour = 0;
+                                    (*para).minute = 0;
+                                    (*para).second = 0;
+                                    (*para).fraction = 0;
+                                }
+                                bind.length = 16;
+                                bind.is_truncated = None;
+                            }                            
+                        },
+                        ffi::SqlDataType::SQL_INTEGER=>{
+                            // if bind.is_null(){
+                            //     bind.length = 4;
+                            //     bind.bytes[0] = 0;
+                            //     bind.bytes[1] = 0;
+                            //     bind.bytes[2] = 0;
+                            //     bind.bytes[3] = 0;
+                            //     bind.is_truncated = None;                                
+                            // }
+                        },
                         // ffi::SqlDataType::SQL_DOUBLE=>{
                         //     println!("double: {:?}", bind.bytes);
                         // },
@@ -1049,6 +1113,8 @@ impl<'b, S> StatementUse<'b, S> {
                     }                  
                 }
 
+                row_index += 1;               
+
                 if let Some(mut _cur) = _value{
                     Ok(Some(OdbcRow {
                         col_idx: 0,
@@ -1058,7 +1124,7 @@ impl<'b, S> StatementUse<'b, S> {
                 }
                 else{
                     Ok(None)
-                }                
+                } 
             },
             Err(_e) => Err(diesel::result::Error::NotFound)
         }

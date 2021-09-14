@@ -358,10 +358,16 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
                                 odbc_sys::SqlDataType::SQL_DATETIME                                                
                                 =>{
                                     unsafe {
-                                        let para = bind.bytes.as_ptr() as *const ffi::SQL_TIMESTAMP_STRUCT;                                
+                                        let mut para = bind.bytes.as_ptr() as *mut ffi::SQL_TIMESTAMP_STRUCT;
+                                        (*para).fraction = 0;    
+                                        if (*para).year == 0 && (*para).month==1 && (*para).day==1 
+                                            && (*para).hour == 0 && (*para).minute==0 && (*para).second==0 && (*para).fraction==0
+                                        {                                                
+                                            para = 0 as *mut ffi::SQL_TIMESTAMP_STRUCT;
+                                        }
                                         stmt.bind_parameter1(i,  &(*para));
                                     }
-                                },           
+                                },
                                 odbc_sys::SqlDataType::SQL_DATE                                                
                                 =>{                            
                                     unsafe {

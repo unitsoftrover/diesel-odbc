@@ -172,10 +172,7 @@ fn main(){
     let conn = RawConnection::<safe::AutocommitOn>::establish(connspec).unwrap();
 
     sales_test::test(&conn);
-    company_test::test(&conn);
-
-    
-
+    // company_test::test(&conn);
 }
 
 

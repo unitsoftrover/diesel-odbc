@@ -1,11 +1,11 @@
 extern crate bigdecimal;
 use serde::{Deserialize, Serialize};
-use crate::schema::{users, quotation_a, quotation_b, quotation_c, quotation2_a, quotation2_b, quotationver_a, quotationver_b, quotationverproject_a, quotationverproject_b, project_a, project_b, project_c, project2_a, project2_b,quotationitem_a,quotationitem_b,quotationitem_c};
+use crate::schema::{users, quotation_x, quotation_a, quotation_b, quotation_c, quotation2_a, quotation2_b, quotationver_a, quotationver_b, quotationverproject_a, quotationverproject_b, project_a, project_b, project_c, project2_a, project2_b,quotationitem_a,quotationitem_b,quotationitem_c};
 use chrono::{NaiveDateTime, NaiveDate};
 use diesel::prelude::*;
 use bigdecimal::BigDecimal;
 use std::default::Default;
-
+use diesel::sql_types::Nullable;
 
 #[derive(Debug, Clone, Serialize, Queryable, Insertable, PartialEq,QueryableByName)]
 #[table_name = "users"]
@@ -44,9 +44,50 @@ pub struct Company {
     pub CreditInstruction : String,
 }
 
+
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, PartialEq,Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, PartialEq,Default)]
 #[primary_key(QuotationNo)]
+#[table_name = "quotation_x"]
+pub struct QuotationX {
+    pub	QuotationID	:	i32,
+    pub	CompanyID	:	Option<i32>,
+    pub	CompanyName	:	String	,
+    pub	Operator	:	Option<String>	,
+    pub	QuotationNo	:	String	,
+    pub	LeadSource	:	String	,
+    pub	QuotationBy	:	String	,
+    // pub	CreateDate	:	NaiveDateTime,
+    pub	QuotationTo	:	String	,
+    pub	AddressQuotation	:	String	,
+    pub	CityQuotation	:	String	,
+    pub	ProvinceQuotation	:	String	,
+    pub	CountryQuotation	:	String	,
+    pub	PostCodeQuotation	:	String	,
+    pub	QuotationContactID	:	Option<i32>,
+    pub	ContactQuotation	:	String	,
+    pub	TelQuotation	:	String	,
+    pub	FaxQuotation	:	String	,
+    pub	MobileQuotation	:	String	,
+    pub	EmailQuotation	:	String	,
+    pub	BillTo	:	String	,
+    pub	AddressBill	:	String	,
+    pub	CityBill	:	String	,
+    pub	ProvinceBill	:	String	,
+    pub	CountryBill	:	String	,
+    pub	PostCodeBill	:	String	,
+    pub	BillingContactID	:	Option<i32>	,
+    pub	ContactBill	:	String	,
+    pub	TelBill	:	String	,
+    pub	FaxBill	:	String	,
+    pub	MobileBill	:	String	,
+    pub	EmailBill	:	String	,
+}
+
+
+#[allow(non_snake_case)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, PartialEq,Default)]
+#[primary_key(QuotationID)]
 #[table_name = "quotation_a"]
 pub struct QuotationA {
     pub	QuotationID	:	i32,
@@ -59,7 +100,7 @@ pub struct QuotationA {
     pub	ProvinceQuotation	:	String	,
     pub	CountryQuotation	:	String	,
     pub	PostCodeQuotation	:	String	,
-    pub	QuotationContactID	:	i32	,
+    pub	QuotationContactID	:	Option<i32>,
     pub	ContactQuotation	:	String	,
     pub	TelQuotation	:	String	,
     pub	FaxQuotation	:	String	,
@@ -71,49 +112,49 @@ pub struct QuotationA {
     pub	ProvinceBill	:	String	,
     pub	CountryBill	:	String	,
     pub	PostCodeBill	:	String	,
-    pub	BillingContactID	:	i32	,
+    pub	BillingContactID	:	Option<i32>,
     pub	ContactBill	:	String	,
     pub	TelBill	:	String	,
     pub	FaxBill	:	String	,
     pub	MobileBill	:	String	,
     pub	EmailBill	:	String	,
+    pub	OfficeCode	:	String	,
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, PartialEq,Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, PartialEq,Default)]
 #[primary_key(QuotationID)]
 #[table_name = "quotation_b"]
 pub struct QuotationB {
     pub	QuotationID	:	i32,
-    pub	CompanyID	:	i32	,
+    // pub	CompanyID	:	Option<i32>,
     pub	CompanyCode	:	String	,
     pub	CompanyName	:	String	,
-    pub	ContactPersonID	:	i32	,
+    // pub	ContactPersonID	:	Option<i32>	,
     pub	SalClient	:	String	,
     pub	FirstNameClient	:	String	,
     pub	LastNameClient	:	String	,
-    pub	Salesman	:	String	,
-    pub	CSR	:	String	,
-    pub	Operator	:	String	,
+    // pub	Salesman	:	Option<String>	,
+    // pub	CSR	:	Option<String>,
+    // pub	Operator	:	Option<String>	,
     pub	CreateDate	:	NaiveDateTime	,
     pub	CreateBy	:	String	,
-    pub	OfficeCode	:	String	,
     pub	PaymentParty	:	String	,
     pub	ClientType	:	String	,
-    pub	CurrentVersion	:	i32	,    
+    // pub	CurrentVersion	:	Option<i32>,    
     pub	OpportunityDescription	:	String	,
     pub	OfficeService	:	String	,
     pub	Seller	:	String	,
     pub	BankClient	:	String	,
-    pub	MultiShipment	:	bool	,
-    pub	IsSubmitedOnline	:	bool	,
-    pub	IsSubmited	:	bool	,
-    pub	SubmitDate	:	NaiveDateTime	,
-    pub	IsRejectToClient	:	bool	,
+    // pub	MultiShipment	:	bool	,
+    // pub	IsSubmitedOnline	:	bool	,
+    // pub	IsSubmited	:	bool	,
+    // pub	SubmitDate	:	NaiveDateTime	,
+    // pub	IsRejectToClient	:	bool	,
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, PartialEq,Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, PartialEq,Default)]
 #[primary_key(QuotationID)]
 #[table_name = "quotation_c"]
 pub struct QuotationC {    
@@ -159,7 +200,7 @@ pub struct QuotationC {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "quotation2_a"]
@@ -196,7 +237,7 @@ pub struct Quotation2A {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, PartialEq,Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, PartialEq,Default)]
 #[primary_key(QuotationID)]
 #[table_name = "quotation2_b"]
 pub struct Quotation2B {     
@@ -230,8 +271,8 @@ pub struct Quotation2B {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
-#[primary_key(QuotationID,VersionNo)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
+#[primary_key(QuotationID)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "quotationver_a"]
 pub struct QuotationVerA {
@@ -268,8 +309,8 @@ pub struct QuotationVerA {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
-#[primary_key(QuotationID,VersionNo)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
+#[primary_key(QuotationID)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "quotationver_b"]
 pub struct QuotationVerB {     
@@ -300,7 +341,7 @@ pub struct QuotationVerB {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,VersionNo,ProjectNo)]
 #[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
 #[table_name = "quotationverproject_a"]
@@ -337,7 +378,7 @@ pub struct QuotationVerProjectA {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,VersionNo,ProjectNo)]
 #[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
 #[table_name = "quotationverproject_b"]
@@ -374,7 +415,7 @@ pub struct QuotationVerProjectB {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "project_a"]
@@ -414,7 +455,7 @@ pub struct ProjectA {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
 #[table_name = "project_b"]
@@ -453,7 +494,7 @@ pub struct ProjectB {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
 #[table_name = "project_c"]
@@ -487,7 +528,7 @@ pub struct ProjectC {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "project2_a"]
@@ -522,7 +563,7 @@ pub struct Project2A {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "project2_b"]
@@ -548,7 +589,7 @@ pub struct Project2B {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,VersionNo,ProjectNo,ItemNo)]
 #[belongs_to(QuotationVerProjectA, foreign_key = "QuotationID")]
 #[table_name = "quotationitem_a"]
@@ -588,7 +629,7 @@ pub struct QuotationItemA
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,VersionNo,ProjectNo,ItemNo)]
 #[belongs_to(QuotationVerProjectA, foreign_key = "QuotationID")]
 #[table_name = "quotationitem_b"]
@@ -632,7 +673,7 @@ pub struct QuotationItemB
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,VersionNo,ProjectNo,ItemNo)]
 #[belongs_to(QuotationVerProjectA, foreign_key = "QuotationID")]
 #[table_name = "quotationitem_c"]
