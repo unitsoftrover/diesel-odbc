@@ -1113,7 +1113,8 @@ impl<'b, S> StatementUse<'b, S> {
                     }                  
                 }
 
-                row_index += 1;               
+                row_index += 1;
+                let _ = row_index;               
 
                 if let Some(mut _cur) = _value{
                     Ok(Some(OdbcRow {
@@ -1128,7 +1129,6 @@ impl<'b, S> StatementUse<'b, S> {
             },
             Err(_e) => Err(diesel::result::Error::NotFound)
         }
-       
     }
 }
 

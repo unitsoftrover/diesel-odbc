@@ -1,4 +1,3 @@
-use diesel::sql_types::Nullable;
 
 table! {
     users (id) {
@@ -107,30 +106,30 @@ table! {
     #[sql_name = "quotation"]
     quotation_b (QuotationID) {
         QuotationID	->	Integer,      
-        // CompanyID	->	Nullable<Integer>,
+        CompanyID	->	Nullable<Integer>,
         CompanyCode	->	VarChar,
         CompanyName	->	VarChar,
-        // ContactPersonID	->	Nullable<Integer>,
+        ContactPersonID	->	Nullable<Integer>,
         SalClient	->	VarChar,
         FirstNameClient	->	VarChar,
         LastNameClient	->	VarChar	,
-        // Salesman	->	Nullable<VarChar>,
-        // CSR	->	Nullable<VarChar>,
-        // Operator	->	Nullable<VarChar>,
+        Salesman	->	Nullable<VarChar>,
+        CSR	->	Nullable<VarChar>,
+        Operator	->	Nullable<VarChar>,
         CreateDate	->	Timestamp	,
         CreateBy	->	Char	,
         PaymentParty	->	VarChar	,
         ClientType	->	VarChar	,
-        // CurrentVersion	->	Nullable<Integer>,
+        CurrentVersion	->	Nullable<Integer>,
         OpportunityDescription	->	VarChar	,
         OfficeService	->	VarChar	,
         Seller	->	VarChar	,
         BankClient	->	VarChar	,
-        // MultiShipment	->	Bool	,
-        // IsSubmitedOnline	->	Bool	,
-        // IsSubmited	->	Bool	,
-        // SubmitDate	->	Timestamp	,
-        // IsRejectToClient	->	Bool	,
+        MultiShipment	->	Bool	,
+        IsSubmitedOnline	->	Bool	,
+        IsSubmited	->	Bool	,
+        SubmitDate	->	Timestamp	,
+        IsRejectToClient	->	Bool	,
 
     }
 }
@@ -315,7 +314,7 @@ table! {
 
 table!{
     #[sql_name = "quotationverproject"]
-    quotationverproject_a(QuotationID, VersionNo, ProjectNo)
+    quotationverproject_a(QuotationID)
     {
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,
@@ -350,7 +349,7 @@ table!{
 
 table!{
     #[sql_name = "quotationverproject"]
-    quotationverproject_b(QuotationID, VersionNo, ProjectNo)
+    quotationverproject_b(QuotationID)
     {        
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,
@@ -386,7 +385,7 @@ table!{
 
 table! {
     #[sql_name = "project"]
-    project_a(QuotationID,ProjectNo)
+    project_a(QuotationID)
     {
         ID	->	Integer	,
         QuotationID	->	Integer	,
@@ -425,7 +424,7 @@ table! {
 
 table!{
     #[sql_name = "project"]
-    project_b(QuotationID, ProjectNo)
+    project_b(QuotationID)
     {
         QuotationID	->	Integer	,
         ProjectNo	->	Integer	,
@@ -463,7 +462,7 @@ table!{
 
 table!{
     #[sql_name = "project"]
-    project_c(QuotationID, ProjectNo)
+    project_c(QuotationID)
     {        
         QuotationID	->	Integer	,
         ProjectNo	->	Integer	,
@@ -496,7 +495,7 @@ table!{
 
 table!{
     #[sql_name = "project2"]
-    project2_a(QuotationID, ProjectNo){
+    project2_a(QuotationID){
         ID	->	Integer	,
         QuotationID	->	Integer	,
         ProjectNo	->	Integer	,
@@ -529,7 +528,7 @@ table!{
 
 table!{
     #[sql_name = "project2"]
-    project2_b(QuotationID, ProjectNo)
+    project2_b(QuotationID)
     {        
         QuotationID	->	Integer	,
         ProjectNo	->	Integer	,
@@ -553,7 +552,7 @@ table!{
 
 table!{
     #[sql_name = "quotationitem"]
-    quotationitem_a(QuotationID,VersionNo,ProjectNo,ItemNo)
+    quotationitem_a(QuotationID)
     {
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,
@@ -591,7 +590,7 @@ table!{
 
 table!{
     #[sql_name = "quotationitem"]
-    quotationitem_b(QuotationID, VersionNo, ProjectNo,ItemNo)
+    quotationitem_b(QuotationID)
     {        
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,
@@ -633,7 +632,7 @@ table!{
 
 table!{
     #[sql_name = "quotationitem"]
-    quotationitem_c(QuotationID, VersionNo, ProjectNo,ItemNo)
+    quotationitem_c(QuotationID)
     {
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,

@@ -1,15 +1,12 @@
 extern crate num_traits as traits;
-use std::borrow::BorrowMut;
 
 use traits::{FromPrimitive, ToPrimitive};
 use bigdecimal::BigDecimal;
 use super::safe::AutocommitOn;
 
 use diesel::prelude::*;
-use diesel::debug_query;
 use diesel::dsl::*;
 use diesel_odbc::connection::RawConnection;
-use diesel_odbc::Odbc;
 
 use super::models::*;
 use super::schema::quotation_a::dsl as qa;
@@ -395,7 +392,6 @@ impl Quotation{
                 let q2_a = q2_a.get(0).unwrap();
                 self.fields2_a = q2_a.clone();                
             }
-
         }
         else{
             update(qa::quotation_a.filter(qa::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields_a).load::<QuotationA>(conn).unwrap();
@@ -405,7 +401,10 @@ impl Quotation{
         update(qb::quotation_b.filter(qb::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields_b).load::<QuotationB>(conn).unwrap();
         update(qc::quotation_c.filter(qc::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields_c).load::<QuotationC>(conn).unwrap();
         update(q2b::quotation2_b.filter(q2b::QuotationID.eq(self.fields_a.QuotationID))).set(&self.fields2_b).load::<Quotation2B>(conn).unwrap();
-        
+        if self.status.is_creating{
+            self.status.is_creating = false;
+        }
+
         for version in &mut self.list_quotation_ver
         {
             version.fields_a.QuotationID = self.fields_a.QuotationID;
@@ -424,7 +423,66 @@ impl Quotation{
                 update(qva::quotationver_a.filter(qva::QuotationID.eq(self.fields_a.QuotationID))).set(&version.fields_a).load::<QuotationVerA>(conn).unwrap();
             }
             update(qvb::quotationver_b.filter(qvb::QuotationID.eq(self.fields_a.QuotationID))).set(&version.fields_b).load::<QuotationVerB>(conn).unwrap();
-        };
+            if version.status.is_creating{
+                version.status.is_creating = false;
+            }
+
+            for ver_project in &mut version.list_quotation_ver_project
+            {
+                ver_project.fields_a.QuotationID = version.fields_a.QuotationID;
+                ver_project.fields_a.VersionNo = version.fields_a.VersionNo;
+                
+                if ver_project.status.is_creating{
+                    let qvp_a = insert_into(qvpa::quotationverproject_a).values(&ver_project.fields_a).load::<QuotationVerProjectA>(conn).unwrap();
+                    if qvp_a.len()==1{
+                        let qvp_a = qvp_a.get(0).unwrap();
+                        ver_project.fields_a = qvp_a.clone();
+                        ver_project.fields_b.VersionNo = qvp_a.VersionNo;    
+                    }
+                }
+                else
+                {
+                    update(qvpa::quotationverproject_a.filter(qvpa::QuotationID.eq(ver_project.fields_a.QuotationID))).set(&ver_project.fields_a).load::<QuotationVerProjectA>(conn).unwrap();
+                }
+                update(qvpb::quotationverproject_b.filter(qvpb::QuotationID.eq(ver_project.fields_b.QuotationID))).set(&ver_project.fields_b).load::<QuotationVerProjectB>(conn).unwrap();
+
+
+                for item in &mut ver_project.list_quotation_item
+                {
+                    item.fields_a.QuotationID = ver_project.fields_a.QuotationID;
+                    item.fields_a.VersionNo = ver_project.fields_a.VersionNo;
+                    item.fields_a.ProjectNo = ver_project.fields_a.ProjectNo;
+                    
+                    
+                    if item.status.is_creating{
+                        let qi_a = insert_into(qia::quotationitem_a).values(&item.fields_a).load::<QuotationItemA>(conn).unwrap();
+                        if qi_a.len()==1{
+                            let qi_a = qi_a.get(0).unwrap();
+                            item.fields_a = qi_a.clone();
+                            item.fields_b.ItemNo = qi_a.ItemNo;    
+                        }
+                    }
+                    else
+                    {
+                        update(qia::quotationitem_a.filter(qia::QuotationID.eq(item.fields_a.QuotationID))).set(&item.fields_a).load::<QuotationItemA>(conn).unwrap();
+                    }
+                    update(qib::quotationitem_b.filter(qib::QuotationID.eq(item.fields_b.QuotationID))).set(&item.fields_b).load::<QuotationItemB>(conn).unwrap();
+                    update(qic::quotationitem_c.filter(qic::QuotationID.eq(item.fields_c.QuotationID))).set(&item.fields_c).load::<QuotationItemC>(conn).unwrap();
+
+                    if item.status.is_creating{
+                        item.status.is_creating = false;
+                    }
+                }
+
+                if ver_project.status.is_creating{
+                    ver_project.status.is_creating = false;
+                }
+
+            }
+
+        };      
+        
+         
 
         
     }
