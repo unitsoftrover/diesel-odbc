@@ -30,6 +30,7 @@ use statement::*;
 use statement::StatementIterator;
 use super::backend::Odbc;
 use diesel::query_builder::bind_collector::RawBytesBindCollector;
+use diesel::query_dsl::load_dsl::CompatibleType;
 
 /// Represents a connection to an ODBC data source
 //#[derive(Debug)]
@@ -49,8 +50,7 @@ impl<'env, AC: AutocommitMode> Handle for RawConnection<'env, AC> {
 }
 
 impl<'env> R2D2Connection for RawConnection<'env, safe::AutocommitOn> {
-    fn ping(&self) -> QueryResult<()> {       
-        
+    fn ping(&mut self) -> QueryResult<()> {       
         self.execute("SELECT 1").map(|_| ())        
     }
 }
@@ -59,7 +59,7 @@ unsafe impl<'env, AC: AutocommitMode> Send for RawConnection<'env, AC> {}
 
 
 impl<'env, AC: AutocommitMode> SimpleConnection for RawConnection<'env, AC> {
-    fn batch_execute(&self, _query: &str) -> QueryResult<()> {
+    fn batch_execute(&mut self, _query: &str) -> QueryResult<()> {
         // self.raw_connection
         //     .enable_multi_statements(|| self.raw_connection.execute(query))
         Ok(())
@@ -69,7 +69,7 @@ impl<'env, AC: AutocommitMode> SimpleConnection for RawConnection<'env, AC> {
 
 impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
     type Backend = super::Odbc;
-    //type TransactionManager = AnsiTransactionManager;
+    type TransactionManager = AnsiTransactionManager;
 
     fn establish(database_url: &str) -> ConnectionResult<Self> {
         // use diesel::result::ConnectionError::CouldntSetupConfiguration;    
@@ -84,7 +84,7 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
     }
 
     #[doc(hidden)]
-    fn execute(&self, query: &str) -> QueryResult<usize> {        
+    fn execute(&mut self, query: &str) -> QueryResult<usize> {        
 
         let stmt = Statement::with_parent(self).unwrap();
         let stmt = stmt.exec_direct(query).unwrap();
@@ -95,18 +95,19 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
     }
 
     #[doc(hidden)]
-    fn load<T, U>(&self, source: T) -> QueryResult<Vec<U>>
+    fn load<T, U, ST>(&mut self, source: T) -> QueryResult<Vec<U>>
     where
         T: AsQuery,
-        T::Query: QueryFragment<Self::Backend> + QueryId,        
-        U: FromSqlRow<T::SqlType, Self::Backend>,
+        T::Query: QueryFragment<Self::Backend> + QueryId,  
+        T::SqlType: CompatibleType<U, Self::Backend, SqlType = ST>,      
+        U: FromSqlRow<ST, Self::Backend>,
         Self::Backend: QueryMetadata<T::SqlType>,       
     {       
         let query = source.as_query();                
         let mut stmt = self.prepare_query(&query)?;   
 
         let mut types = Vec::new();
-        Odbc::row_metadata(&(), &mut types);
+        Odbc::row_metadata(&mut (), &mut types);
         let metadata = stmt.metadata().unwrap();
         let mut output_binds = statement::Binds::from_output_types(types, &metadata);
         let stmt = stmt.execute_statement(&metadata, &mut output_binds).unwrap();        
@@ -134,7 +135,7 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
     }
 
     #[doc(hidden)]
-    fn execute_returning_count<T>(&self, source: &T) -> QueryResult<usize>
+    fn execute_returning_count<T>(&mut self, source: &T) -> QueryResult<usize>
     where       
         T: QueryFragment<Self::Backend> + QueryId,
     {        
@@ -149,9 +150,13 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
     }
 
     #[doc(hidden)]
-    fn transaction_manager(&self) ->  &dyn TransactionManager<Self> {
-        &self.transaction_manager
+    fn transaction_state(
+        &mut self,
+    ) -> &mut <Self::TransactionManager as TransactionManager<Self>>::TransactionStateData
+    {
+        &mut self.transaction_manager
     }
+    
 }
 
 impl <'env> RawConnection<'env, AutocommitOn> {
@@ -163,7 +168,7 @@ impl <'env> RawConnection<'env, AutocommitOn> {
             safe::Return::Success(value) => {
                 let conn = RawConnection {                    
                     safe: value,
-                    transaction_manager: AnsiTransactionManager::new(),
+                    transaction_manager: AnsiTransactionManager::default(),
                     statement_cache: StatementCache::new(),
                 };
                 Ok(conn)
@@ -171,7 +176,7 @@ impl <'env> RawConnection<'env, AutocommitOn> {
             safe::Return::Info(value) => {
                 let conn = RawConnection {                    
                     safe: value,
-                    transaction_manager: AnsiTransactionManager::new(),
+                    transaction_manager: AnsiTransactionManager::default(),
                     statement_cache: StatementCache::new(), 
                 };
                 Ok(conn)
@@ -179,7 +184,7 @@ impl <'env> RawConnection<'env, AutocommitOn> {
             safe::Return::Error(value) => {
                 let conn = RawConnection {                   
                     safe: value,
-                    transaction_manager: AnsiTransactionManager::new(),
+                    transaction_manager: AnsiTransactionManager::default(),
                     statement_cache: StatementCache::new(),
                 };
                 Err(conn)
@@ -196,17 +201,17 @@ impl <'env> RawConnection<'env, AutocommitOff> {
         match ret {
             safe::Return::Success(value) => Ok(RawConnection {                
                 safe: value,
-                transaction_manager: AnsiTransactionManager::new(),
+                transaction_manager: AnsiTransactionManager::default(),
                 statement_cache: StatementCache::new(), 
             }),
             safe::Return::Info(value) => Ok(RawConnection {                          
                 safe: value,
-                transaction_manager: AnsiTransactionManager::new(),
+                transaction_manager: AnsiTransactionManager::default(),
                 statement_cache: StatementCache::new(),
             }),
             safe::Return::Error(value) => Err(RawConnection {                              
                 safe: value,
-                transaction_manager: AnsiTransactionManager::new(),
+                transaction_manager: AnsiTransactionManager::default(),
                 statement_cache: StatementCache::new(), })
         }
         
@@ -259,254 +264,144 @@ unsafe impl<'env, AC: AutocommitMode> safe::Handle for RawConnection<'env, AC> {
 }
 
 impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
-    fn prepare_query<T>(&self, source: &T) -> QueryResult<MaybeCached<Statement<Prepared, NoResult, AC>>>
+    fn prepare_query<T>(&mut self, source: &T) -> QueryResult<MaybeCached<Statement<Prepared, NoResult, AC>>>
     // fn prepare_query<T>(&self, source: &T) -> QueryResult<Statement<Prepared, NoResult, AC>>
     where
         T: QueryFragment<crate::odbc::Odbc> + QueryId,            
     {        
-        let stmt = self
+        let conn = unsafe{&mut *(self as *const Self as *mut Self)};
+        let stmt = conn
             .statement_cache
-            .cached_statement(source, &[], |sql| {
-                // let stmt1 = Statement::with_parent(self).unwrap();                
-                // println!("sql:{:?}", sql);
-                // // let sql = "select CompanyID,CompanyCode,CompanyName from company where CompanyCode='O0000001'";
-                // let stmt1 = stmt1.prepare(sql).unwrap();       
-                // Ok(stmt1) 
-                
-                let stmt = Statement::with_parent(self).unwrap();     
-                // let mut query_builder = crate::odbc::OdbcQueryBuilder::new();
-                // source.to_sql(&mut query_builder)?;
-                // let sql = query_builder.finish();
-                // println!("prepare sql:{}", sql);
-                let mut stmt = stmt.prepare(sql).unwrap(); 
-                let mut bind_collector = RawBytesBindCollector::new();
-                source.collect_binds(&mut bind_collector, &())?;
-                let binds = bind_collector
-                    .metadata
-                    .into_iter()
-                    .zip(bind_collector.binds);        
+            .statement_is_cached(source, &[]); 
+        if let Some(stmt) = stmt{
+            return Ok(stmt);
+        }
+        else
+        {                
+            let mut query_builder = crate::odbc::OdbcQueryBuilder::new();
+            source.to_sql(&mut query_builder)?;
+            let sql = query_builder.finish();
 
-                let mut i = 1;
-                let mut input_binds = statement::Binds::from_input_data(binds)?;  
-                let _ = input_binds.data
-                    .iter_mut()
-                    .map(|bind| {                                    
-                            match bind.tpe{                        
-                                odbc_sys::SqlDataType::SQL_INTEGER=>{
-                                    unsafe {                                
-                                        let para = bind.bytes.as_ptr() as *const i32;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },
-                                odbc_sys::SqlDataType::SQL_SMALLINT=>{
-                                    unsafe {                                
-                                        let para = bind.bytes.as_ptr() as *const i16;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },
-                                odbc_sys::SqlDataType::SQL_EXT_TINYINT=>{
-                                    unsafe {                                
-                                        let para = bind.bytes.as_ptr() as *const i8;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },
-                                odbc_sys::SqlDataType::SQL_EXT_BIGINT=>{
-                                    unsafe {                                
-                                        let para = bind.bytes.as_ptr() as *const i64;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },
-                                odbc_sys::SqlDataType::SQL_EXT_BIT=>{
-                                    unsafe {                                
-                                        let para = bind.bytes.as_ptr() as *const bool;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },
-                                odbc_sys::SqlDataType::SQL_DECIMAL | odbc_sys::SqlDataType::SQL_NUMERIC  
-                                =>{                            
-                                    let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-                                    stmt.bind_parameter1(i,  &str);
-                                },
-                                odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
-                                =>{
-                                    unsafe {
-                                        let para = bind.bytes.as_ptr() as *const f64;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },
-                                odbc_sys::SqlDataType::SQL_REAL
-                                =>{
-                                    unsafe {
-                                        let para = bind.bytes.as_ptr() as *const f32;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },
-                                odbc_sys::SqlDataType::SQL_VARCHAR
-                                | odbc_sys::SqlDataType::SQL_CHAR
-                                | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR
-                                =>{                            
-                                    let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-                                    stmt.bind_parameter1(i,  &str);
-                                },
-                                odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
-                                | odbc_sys::SqlDataType::SQL_EXT_WCHAR
-                                | odbc_sys::SqlDataType::SQL_EXT_WLONGVARCHAR
-                                =>{
-                                    let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-                                    stmt.bind_parameter1(i,  &str);
-                                },
-                                odbc_sys::SqlDataType::SQL_DATETIME                                                
-                                =>{
-                                    unsafe {
-                                        let mut para = bind.bytes.as_ptr() as *mut ffi::SQL_TIMESTAMP_STRUCT;
-                                        (*para).fraction = 0;    
-                                        if (*para).year == 0 && (*para).month==1 && (*para).day==1 
-                                            && (*para).hour == 0 && (*para).minute==0 && (*para).second==0 && (*para).fraction==0
-                                        {                                                
-                                            para = 0 as *mut ffi::SQL_TIMESTAMP_STRUCT;
-                                        }
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },
-                                odbc_sys::SqlDataType::SQL_DATE                                                
-                                =>{                            
-                                    unsafe {
-                                        let para = bind.bytes.as_ptr() as *const ffi::SQL_DATE_STRUCT;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                }, 
-                                odbc_sys::SqlDataType::SQL_TIME                                                
-                                =>{                            
-                                    unsafe {
-                                        let para = bind.bytes.as_ptr() as *const ffi::SQL_TIME_STRUCT;                                
-                                        stmt.bind_parameter1(i,  &(*para));
-                                    }
-                                },              
-                                _=>{
-                                    // let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-                                    // stmt.bind_parameter1(i,  &str);
+            let stmt = Statement::with_parent(self).unwrap();     
+            let mut stmt = stmt.prepare(sql).unwrap(); 
+            let mut bind_collector = RawBytesBindCollector::new();
+            source.collect_binds(&mut bind_collector, &mut ())?;
+            let binds = bind_collector
+                .metadata
+                .into_iter()
+                .zip(bind_collector.binds);        
+
+            let mut i = 1;
+            let mut input_binds = statement::Binds::from_input_data(binds)?;  
+            let _ = input_binds.data
+                .iter_mut()
+                .map(|bind| {                                    
+                        match bind.tpe{                        
+                            odbc_sys::SqlDataType::SQL_INTEGER=>{
+                                unsafe {                                
+                                    let para = bind.bytes.as_ptr() as *const i32;                                
+                                    stmt.bind_parameter1(i,  &(*para));
                                 }
-                            };             
-                            i += 1;
-                    }) .collect::<Vec<_>>();
-                stmt.input_binds = Some(input_binds);
+                            },
+                            odbc_sys::SqlDataType::SQL_SMALLINT=>{
+                                unsafe {                                
+                                    let para = bind.bytes.as_ptr() as *const i16;                                
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            },
+                            odbc_sys::SqlDataType::SQL_EXT_TINYINT=>{
+                                unsafe {                                
+                                    let para = bind.bytes.as_ptr() as *const i8;                                
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            },
+                            odbc_sys::SqlDataType::SQL_EXT_BIGINT=>{
+                                unsafe {                                
+                                    let para = bind.bytes.as_ptr() as *const i64;                                
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            },
+                            odbc_sys::SqlDataType::SQL_EXT_BIT=>{
+                                unsafe {                                
+                                    let para = bind.bytes.as_ptr() as *const bool;                                
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            },
+                            odbc_sys::SqlDataType::SQL_DECIMAL | odbc_sys::SqlDataType::SQL_NUMERIC  
+                            =>{                            
+                                let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
+                                stmt.bind_parameter1(i,  &str);
+                            },
+                            odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
+                            =>{
+                                unsafe {
+                                    let para = bind.bytes.as_ptr() as *const f64;                                
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            },
+                            odbc_sys::SqlDataType::SQL_REAL
+                            =>{
+                                unsafe {
+                                    let para = bind.bytes.as_ptr() as *const f32;                                
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            },
+                            odbc_sys::SqlDataType::SQL_VARCHAR
+                            | odbc_sys::SqlDataType::SQL_CHAR
+                            | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR
+                            =>{                            
+                                let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
+                                stmt.bind_parameter1(i,  &str);
+                            },
+                            odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
+                            | odbc_sys::SqlDataType::SQL_EXT_WCHAR
+                            | odbc_sys::SqlDataType::SQL_EXT_WLONGVARCHAR
+                            =>{
+                                let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
+                                stmt.bind_parameter1(i,  &str);
+                            },
+                            odbc_sys::SqlDataType::SQL_DATETIME                                                
+                            =>{
+                                unsafe {
+                                    let mut para = bind.bytes.as_ptr() as *mut ffi::SQL_TIMESTAMP_STRUCT;
+                                    (*para).fraction = 0;    
+                                    if (*para).year == 0 && (*para).month==1 && (*para).day==1 
+                                        && (*para).hour == 0 && (*para).minute==0 && (*para).second==0 && (*para).fraction==0
+                                    {                                                
+                                        para = 0 as *mut ffi::SQL_TIMESTAMP_STRUCT;
+                                    }
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            },
+                            odbc_sys::SqlDataType::SQL_DATE                                                
+                            =>{                            
+                                unsafe {
+                                    let para = bind.bytes.as_ptr() as *const ffi::SQL_DATE_STRUCT;                                
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            }, 
+                            odbc_sys::SqlDataType::SQL_TIME                                                
+                            =>{                            
+                                unsafe {
+                                    let para = bind.bytes.as_ptr() as *const ffi::SQL_TIME_STRUCT;                                
+                                    stmt.bind_parameter1(i,  &(*para));
+                                }
+                            },              
+                            _=>{
+                                // let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
+                                // stmt.bind_parameter1(i,  &str);
+                            }
+                        };             
+                        i += 1;
+                }) .collect::<Vec<_>>();
+            stmt.input_binds = Some(input_binds);
 
-                Ok(stmt)
-            })?; 
 
-        // let stmt = Statement::with_parent(self).unwrap();     
-        // let mut query_builder = crate::odbc::OdbcQueryBuilder::new();
-        // source.to_sql(&mut query_builder)?;
-        // let sql = query_builder.finish();
-        // // println!("prepare sql:{}", sql);
-        // let mut stmt = stmt.prepare(sql.as_str()).unwrap(); 
-        // let mut bind_collector = RawBytesBindCollector::new();
-        // source.collect_binds(&mut bind_collector, &())?;
-        // let binds = bind_collector
-        //     .metadata
-        //     .into_iter()
-        //     .zip(bind_collector.binds);        
+            let this = unsafe{&mut *(self as *const Self as *mut Self)};
+            let stmt1 = this.statement_cache.cached_statement1(source, &[], stmt)?;
+            return Ok(stmt1);
 
-        // let mut i = 1;
-        // let mut input_binds = statement::Binds::from_input_data(binds)?;  
-        // let _ = input_binds.data
-        //     .iter_mut()
-        //     .map(|bind| {                                    
-        //             match bind.tpe{                        
-        //                 odbc_sys::SqlDataType::SQL_INTEGER=>{
-        //                     unsafe {                                
-        //                         let para = bind.bytes.as_ptr() as *const i32;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_SMALLINT=>{
-        //                     unsafe {                                
-        //                         let para = bind.bytes.as_ptr() as *const i16;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_EXT_TINYINT=>{
-        //                     unsafe {                                
-        //                         let para = bind.bytes.as_ptr() as *const i8;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_EXT_BIGINT=>{
-        //                     unsafe {                                
-        //                         let para = bind.bytes.as_ptr() as *const i64;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_EXT_BIT=>{
-        //                     unsafe {                                
-        //                         let para = bind.bytes.as_ptr() as *const bool;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_DECIMAL | odbc_sys::SqlDataType::SQL_NUMERIC  
-        //                 =>{                            
-        //                     let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-        //                     stmt.bind_parameter1(i,  &str);
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
-        //                 =>{
-        //                     unsafe {
-        //                         let para = bind.bytes.as_ptr() as *const f64;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_REAL
-        //                 =>{
-        //                     unsafe {
-        //                         let para = bind.bytes.as_ptr() as *const f32;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_VARCHAR
-        //                 | odbc_sys::SqlDataType::SQL_CHAR
-        //                 | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR
-        //                 =>{                            
-        //                     let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-        //                     stmt.bind_parameter1(i,  &str);
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
-        //                 | odbc_sys::SqlDataType::SQL_EXT_WCHAR
-        //                 | odbc_sys::SqlDataType::SQL_EXT_WLONGVARCHAR
-        //                 =>{
-        //                     let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-        //                     stmt.bind_parameter1(i,  &str);
-        //                 },
-        //                 odbc_sys::SqlDataType::SQL_DATETIME                                                
-        //                 =>{
-        //                     unsafe {
-        //                         let para = bind.bytes.as_ptr() as *const ffi::SQL_TIMESTAMP_STRUCT;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },           
-        //                 odbc_sys::SqlDataType::SQL_DATE                                                
-        //                 =>{                            
-        //                     unsafe {
-        //                         let para = bind.bytes.as_ptr() as *const ffi::SQL_DATE_STRUCT;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 }, 
-        //                 odbc_sys::SqlDataType::SQL_TIME                                                
-        //                 =>{                            
-        //                     unsafe {
-        //                         let para = bind.bytes.as_ptr() as *const ffi::SQL_TIME_STRUCT;                                
-        //                         stmt.bind_parameter1(i,  &(*para));
-        //                     }
-        //                 },              
-        //                 _=>{
-        //                     // let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-        //                     // stmt.bind_parameter1(i,  &str);
-        //                 }
-        //             };             
-        //             i += 1;
-        //     }) .collect::<Vec<_>>();
-        // stmt.input_binds = Some(input_binds);
-
-        Ok(stmt)       
+        }
     }
 
     pub fn prepare_query1(&self, source: &String) -> Statement<Prepared, NoResult, AC>
@@ -546,7 +441,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         let safe = into_result(safe.connect(dsn, usr, pwd)).unwrap();
         RawConnection{
             safe, 
-            transaction_manager: AnsiTransactionManager::new(),
+            transaction_manager: AnsiTransactionManager::default(),
             statement_cache: StatementCache::new(),
         }      
     }
@@ -556,7 +451,7 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         let safe = into_result(safe.connect_with_connection_string(conn_str)).unwrap();
         RawConnection{
             safe: safe, 
-            transaction_manager: AnsiTransactionManager::new(),
+            transaction_manager: AnsiTransactionManager::default(),
             statement_cache: StatementCache::new(),
         }
     }

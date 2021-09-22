@@ -64,6 +64,7 @@ table! {
         FaxBill	->	VarChar,
         MobileBill	->	VarChar,
         EmailBill	->	VarChar,
+        OfficeCode	->	VarChar	,
     }
 }
 

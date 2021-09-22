@@ -46,11 +46,11 @@ async fn get_user(
 ) -> Result<HttpResponse, Error> {
     // ::environment::DB_ENCODING
     let user_uid = user_uid.into_inner();
-    let conn = pool.get().expect("couldn't get db connection from pool");
+    let mut conn = pool.get().expect("couldn't get db connection from pool");
     error!("111");    
 
     // use web::block to offload blocking Diesel code without blocking server thread
-    let user = web::block(move || actions::find_user_by_uid(user_uid, &conn))
+    let user = web::block(move || actions::find_user_by_uid(user_uid, &mut conn))
         .await
         .map_err(|e| {
             eprintln!("{}", e);
@@ -74,10 +74,10 @@ async fn add_user(
     pool: web::Data<DbPool>,
     form: web::Json<models::NewUser>,
 ) -> Result<HttpResponse, Error> {
-    let conn = pool.get().expect("couldn't get db connection from pool");
+    let mut conn = pool.get().expect("couldn't get db connection from pool");
 
     // use web::block to offload blocking Diesel code without blocking server thread
-    let user = web::block(move || actions::insert_new_user(&form.name, &conn))
+    let user = web::block(move || actions::insert_new_user(&form.name, &mut conn))
         .await
         .map_err(|e| {
             eprintln!("{}", e);

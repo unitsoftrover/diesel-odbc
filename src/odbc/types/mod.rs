@@ -134,99 +134,99 @@ impl FromSql<Bool, Odbc> for bool {
 
 
 impl HasSqlType<Unsigned<TinyInt>> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::UnsignedTiny
     }
 }
 
 impl HasSqlType<Unsigned<SmallInt>> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::UnsignedShort
     }
 }
 
 impl HasSqlType<Unsigned<Integer>> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::UnsignedLong
     }
 }
 
 impl HasSqlType<Unsigned<BigInt>> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::UnsignedLongLong
     }
 }
 
 
 impl HasSqlType<TinyInt> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Tiny
     }
 }
 
 impl HasSqlType<SmallInt> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Short
     }
 }
 
 impl HasSqlType<Integer> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Long
     }
 }
 
 impl HasSqlType<BigInt> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::LongLong
     }
 }
 
 impl HasSqlType<Bool> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Bit
     }
 }
 
 
 impl HasSqlType<Float> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Float
     }
 }
 
 impl HasSqlType<Double> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Double
     }
 }
 
 impl HasSqlType<Text> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::String
     }
 }
 
 impl HasSqlType<Binary> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Blob
     }
 }
 
 impl HasSqlType<Date> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Date
     }
 }
 
 impl HasSqlType<Time> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Time
     }
 }
 
 impl HasSqlType<Timestamp> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Timestamp
     }
 }
@@ -279,7 +279,7 @@ pub struct Datetime;
 // }
 
 impl HasSqlType<Numeric> for Odbc {
-    fn metadata(_lookup: &()) -> OdbcSqlType {
+    fn metadata(_lookup: &mut ()) -> OdbcSqlType {
         OdbcSqlType::Numeric
     }
 }

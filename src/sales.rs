@@ -196,7 +196,7 @@ impl Quotation{
     }
 
 
-    pub fn load<'env>(conn: &RawConnection<'env, AutocommitOn>, quotation_id : i32)->Self{
+    pub fn load<'env>(conn: &mut RawConnection<'env, AutocommitOn>, quotation_id : i32)->Self{
         
         let mut q_a = qa::quotation_a.filter(qa::QuotationID.eq(quotation_id)).load::<QuotationA>(conn).unwrap();
         let mut q_b = qb::quotation_b.filter(qb::QuotationID.eq(quotation_id)).load::<QuotationB>(conn).unwrap();
@@ -375,7 +375,7 @@ impl Quotation{
         quotation
     }
 
-    pub fn save<'env>(&mut self, conn : &RawConnection<'env, AutocommitOn>){
+    pub fn save<'env>(&mut self, conn : &mut RawConnection<'env, AutocommitOn>){
         if self.status.is_creating{
             let q_a = insert_into(qa::quotation_a).values(&self.fields_a).load::<QuotationA>(conn).unwrap();
             if q_a.len()==1{

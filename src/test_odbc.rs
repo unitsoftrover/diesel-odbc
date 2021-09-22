@@ -169,9 +169,9 @@ fn main(){
     // let conn = RawConnection<safe::AutocommitOn>>::new(connspec);
     // let connspec = "driver={sql server};server=localhost;database=UnitsoftEBS;UID=main;PWD=unitsoft_main;";
     let connspec = "driver={sql server};server=192.168.1.10;database=UnitsoftEBS;uid=main;pwd=unitsoft_main;";
-    let conn = RawConnection::<safe::AutocommitOn>::establish(connspec).unwrap();
+    let mut conn = RawConnection::<safe::AutocommitOn>::establish(connspec).unwrap();
 
-    sales_test::test(&conn);
+    sales_test::test(&mut conn);
     // company_test::test(&conn);
 }
 

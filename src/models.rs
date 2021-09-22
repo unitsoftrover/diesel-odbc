@@ -81,6 +81,7 @@ pub struct QuotationX {
     pub	FaxBill	:	String	,
     pub	MobileBill	:	String	,
     pub	EmailBill	:	String	,
+    pub	OfficeCode	:	String	,
 }
 
 

@@ -11,7 +11,7 @@ use diesel_odbc::Odbc;
 use super::models::*;
 use super::safe::*;
 
-pub fn test<'env>(conn : &RawConnection<'env, AutocommitOn>)
+pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
 {
     let query = insert_into(company)
     .values((CompanyCode.eq("00000000"), CompanyName.eq("unitsoft"), DateCreated.eq(NaiveDateTime::parse_from_str("2020-1-1 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap()), CompanyType.eq("C"), CreateOffice.eq("SH"), CreditAmount.eq(BigDecimal::from_f64(100000.0))));
