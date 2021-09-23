@@ -31,14 +31,13 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
         // quotation1.save(conn);
         
         let mut quotation_x : QuotationX = Default::default();
-        quotation_x.QuotationNo = "SH21-Q1000001".to_string();
+        quotation_x.QuotationNo = "".to_string();
         quotation_x.Operator = Some("rover".to_string());
-        quotation_x.QuotationNo = "SH21-Q10000001".to_string();        
+        quotation_x.CompanyID = Some(1);
         quotation_x.QuotationContactID = Some(1);
         quotation_x.BillingContactID = Some(1);
         quotation_x.QuotationBy = "admin".to_string();        
         quotation_x.OfficeCode = "SH".to_string();
-
 
         let qa = insert_into(quotationx::quotation_x).values(quotation_x).load::<QuotationX>(conn);   
         let mut qa = qa.unwrap();
@@ -50,12 +49,13 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
 
             qa.Operator = Some("rover".to_string());
             qa.QuotationNo = "SH21-Q10000001".to_string();
-            qa.LeadSource = qa.LeadSource.trim().to_string();
-            qa.QuotationContactID = Some(1);
-            qa.BillingContactID = Some(1);
-            qa.QuotationBy = "admin".to_string();
+            // qa.LeadSource = qa.LeadSource.trim().to_string();
+            // qa.QuotationContactID = Some(1);
+            // qa.BillingContactID = Some(1);
+            // qa.QuotationBy = "admin".to_string();
+            // qa.AddressBill = "shanghai".to_string();           
 
-            qa.AddressBill = "shanghai".to_string();           
+
             let qa = update(quotationx::quotation_x.filter(quotationx::QuotationNo.eq("SH21-Q0000001"))).set(&*qa).load::<QuotationX>(conn).unwrap();
             let qa = qa.get(0).unwrap();
             println!("qa no:{}", qa.QuotationNo);
