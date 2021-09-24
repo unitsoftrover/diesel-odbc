@@ -538,6 +538,7 @@ dependencies = [
 [[package]]
 name = "diesel"
 version = "2.0.0"
+source = "git+https://github.com/unitsoftrover/diesel?branch=dev#008a8e42cfbb615b3b8483d92a74c0fecd236907"
 dependencies = [
  "bigdecimal",
  "bitflags",
@@ -591,6 +592,7 @@ dependencies = [
 [[package]]
 name = "diesel_derives"
 version = "2.0.0"
+source = "git+https://github.com/unitsoftrover/diesel?branch=dev#008a8e42cfbb615b3b8483d92a74c0fecd236907"
 dependencies = [
  "proc-macro2",
  "quote",
