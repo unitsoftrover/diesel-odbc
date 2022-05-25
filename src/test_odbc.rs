@@ -150,6 +150,7 @@ simple_clause!(
 
 
 fn main(){
+    println!("test odbc");
     use self::schema::company::*;
     let select = ReturningClauseWithSelect(CompanyName);
 
@@ -172,6 +173,7 @@ fn main(){
     let mut conn = RawConnection::<safe::AutocommitOn>::establish(connspec).unwrap();
 
     sales_test::test(&mut conn);
+    // println!("test odbc finish");
     // company_test::test(&conn);
 }
 
