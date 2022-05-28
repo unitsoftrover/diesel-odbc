@@ -1,6 +1,6 @@
 extern crate bigdecimal;
 use serde::{Deserialize, Serialize};
-use crate::schema::{users, quotation_x, quotation_a, quotation_b, quotation_c, quotation2_a, quotation2_b, quotationver_a, quotationver_b, quotationverproject_a, quotationverproject_b, project_a, project_b, project_c, project2_a, project2_b,quotationitem_a,quotationitem_b,quotationitem_c};
+use crate::schema::{users, quotation_x, quotation, quotation2, quotationver, quotationverproject, project, project2, quotationitem};
 use chrono::{NaiveDateTime, NaiveDate};
 use diesel::prelude::*;
 use bigdecimal::BigDecimal;
@@ -88,7 +88,7 @@ pub struct QuotationX {
 #[allow(non_snake_case)]
 #[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, PartialEq,Default)]
 #[primary_key(QuotationID)]
-#[table_name = "quotation_a"]
+#[table_name = "quotation"]
 pub struct QuotationA {
     pub	QuotationID	:	i32,
     pub	QuotationNo	:	String	,
@@ -119,14 +119,6 @@ pub struct QuotationA {
     pub	MobileBill	:	String	,
     pub	EmailBill	:	String	,
     pub	OfficeCode	:	String	,
-}
-
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, PartialEq,Default)]
-#[primary_key(QuotationID)]
-#[table_name = "quotation_b"]
-pub struct QuotationB {
-    pub	QuotationID	:	i32,
     pub	CompanyID	:	Option<i32>,
     pub	CompanyCode	:	String	,
     pub	CompanyName	:	String	,
@@ -151,14 +143,7 @@ pub struct QuotationB {
     pub	IsSubmited	:	bool	,
     pub	SubmitDate	:	NaiveDateTime	,
     pub	IsRejectToClient	:	bool	,
-}
-
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, PartialEq,Default)]
-#[primary_key(QuotationID)]
-#[table_name = "quotation_c"]
-pub struct QuotationC {    
-    pub	QuotationID	:	i32,
+    
     pub	IsConfirmedSalesOrder	:	bool	,
     pub	ConfirmedBy	:	String	,
     pub	ConfirmDate	:	NaiveDateTime	,
@@ -188,23 +173,22 @@ pub struct QuotationC {
     pub	Other18	:	String	,
     pub	Other19	:	String	,
     pub	Other20	:	String	,
-    // pub	Other21	:	String	,
-    // pub	Other22	:	String	,
-    // pub	Other23	:	String	,
-    // pub	Other24	:	String	,
-    // pub	Other25	:	String	,
-    // pub	Other26	:	String	,
-    // pub	Other27	:	String	,
-    // pub	Other28	:	String	,
+    pub	Other21	:	String	,
+    pub	Other22	:	String	,
+    pub	Other23	:	String	,
+    pub	Other24	:	String	,
+    pub	Other25	:	String	,
+    pub	Other26	:	String	,
+    pub	Other27	:	String	,
+    pub	Other28	:	String	,
 }
-
 
 #[allow(non_snake_case)]
 #[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
-#[table_name = "quotation2_a"]
-pub struct Quotation2A {
+#[table_name = "quotation2"]
+pub struct Quotation2 {
     pub	QuotationID	:	i32	,
     pub	BrokerID	:	i32	,
     pub	BrokerCode	:	String	,
@@ -234,14 +218,7 @@ pub struct Quotation2A {
     pub	ShipperETD	:	NaiveDateTime	,
     pub	ShipperETA	:	NaiveDateTime	,
     pub	LoadingAt	:	String	,
-}
-
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, PartialEq,Default)]
-#[primary_key(QuotationID)]
-#[table_name = "quotation2_b"]
-pub struct Quotation2B {     
-    pub	QuotationID	:	i32,
+    
     pub	SpecialInstruction	:	String	,
     pub	DeliveryInstruction	:	String	,
     pub	CustomsDocuments	:	String	,
@@ -269,11 +246,12 @@ pub struct Quotation2B {
     pub	LeaseTerm	:	String	,        
 }
 
+
 #[allow(non_snake_case)]
 #[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
-#[table_name = "quotationver_a"]
+#[table_name = "quotationver"]
 pub struct QuotationVerA {
     pub	QuotationID	:	i32	,
     pub	VersionNo	:	i32	,
@@ -305,16 +283,7 @@ pub struct QuotationVerA {
     pub	AdditionalTerms	:	String	,
     pub	PaymentMethodCode	:	String	,
     pub	PaymentMethod	:	String	,
-}
-
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
-#[primary_key(QuotationID)]
-#[belongs_to(QuotationA, foreign_key = "QuotationID")]
-#[table_name = "quotationver_b"]
-pub struct QuotationVerB {     
-    pub	QuotationID	:	i32,
-    pub	VersionNo	:	i32	,
+    
     pub	BreachDuty	:	String	,
     pub	BreachSolve	:	String	,
     pub	QuotationSeed	:	String	,
@@ -338,12 +307,11 @@ pub struct QuotationVerB {
     pub	ApproveDeliveryBy	:	String	,
 }
 
-
 #[allow(non_snake_case)]
 #[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
-#[table_name = "quotationverproject_a"]
+#[table_name = "quotationverproject"]
 pub struct QuotationVerProjectA {
     pub	QuotationID	:	i32	,
     pub	VersionNo	:	i32	,
@@ -373,18 +341,7 @@ pub struct QuotationVerProjectA {
     pub	TotalCostFixCurrency	:	BigDecimal	,
     pub	IncludeTax	:	bool	,
     pub	TaxRate	:	BigDecimal	,
-}
 
-
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
-#[primary_key(QuotationID)]
-#[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
-#[table_name = "quotationverproject_b"]
-pub struct QuotationVerProjectB {    
-    pub	QuotationID	:	i32	,
-    pub	VersionNo	:	i32	,
-    pub	ProjectNo	:	i32	,
     pub	CalcCommWithRate	:	bool	,
     pub	CommissionRate	:	BigDecimal	,
     pub	SettledCommission	:	bool	,
@@ -417,7 +374,7 @@ pub struct QuotationVerProjectB {
 #[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
-#[table_name = "project_a"]
+#[table_name = "project"]
 pub struct ProjectA {
     pub	ID	:	i32	,
     pub	QuotationID	:	i32	,
@@ -450,17 +407,8 @@ pub struct ProjectA {
     pub	Other8	:	String	,
     pub	Other9	:	String	,
     pub	Other10	:	String	,
-}
 
 
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
-#[primary_key(QuotationID,ProjectNo)]
-#[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
-#[table_name = "project_b"]
-pub struct ProjectB {    
-    pub	QuotationID	:	i32	,
-    pub	ProjectNo	:	i32	,
     pub	Other11	:	String	,
     pub	Other12	:	String	,
     pub	Other13	:	String	,
@@ -489,17 +437,7 @@ pub struct ProjectB {
     pub	OriginCountry	:	String	,
     pub	DestCity	:	String	,
     pub	DestCountry	:	String	,
-}
-
-
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
-#[primary_key(QuotationID,ProjectNo)]
-#[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
-#[table_name = "project_c"]
-pub struct ProjectC {        
-    pub	QuotationID	:	i32	,
-    pub	ProjectNo	:	i32	,
+    
     pub	VesselName	:	String	,
     pub	VoyageNo	:	String	,
     pub	ETD	:	NaiveDateTime	,
@@ -523,14 +461,14 @@ pub struct ProjectC {
     pub	Origin	:	String	,
     pub	PaymentMethodCode	:	String	,
     pub	PaymentMethod	:	String	,
-    pub	DealAsCommission	:	bool	,       
+    pub	DealAsCommission	:	bool	,     
 }
 
 #[allow(non_snake_case)]
 #[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
-#[table_name = "project2_a"]
+#[table_name = "project2"]
 pub struct Project2A {
     pub	ID	:	i32	,
     pub	QuotationID	:	i32	,
@@ -559,16 +497,8 @@ pub struct Project2A {
     pub	HomeTelDestDelivery	:	String	,
     pub	MobileDestDelivery	:	String	,
     pub	EmailDestDelivery	:	String	,
-}
 
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
-#[primary_key(QuotationID,ProjectNo)]
-#[belongs_to(QuotationA, foreign_key = "QuotationID")]
-#[table_name = "project2_b"]
-pub struct Project2B {    
-    pub	QuotationID	:	i32	,
-    pub	ProjectNo	:	i32	,
+    
     pub	Allowance	:	String	,
     pub	Storage	:	bool	,
     pub	StorageAt	:	String	,
@@ -584,14 +514,13 @@ pub struct Project2B {
     pub	Container45HQty	:	i32	,
     pub	TruckType	:	String	,
     pub	TruckQty	:	i32	,        
-        
 }
 
 #[allow(non_snake_case)]
 #[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationVerProjectA, foreign_key = "QuotationID")]
-#[table_name = "quotationitem_a"]
+#[table_name = "quotationitem"]
 pub struct QuotationItemA
 {
     pub	QuotationID	:	i32	,
@@ -625,19 +554,7 @@ pub struct QuotationItemA
     pub	QtyInvoiced	:	BigDecimal	,
     pub	QtyDeliveried	:	BigDecimal	,
     pub	QtyDeliveriedActual	:	BigDecimal	,
-}
 
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
-#[primary_key(QuotationID)]
-#[belongs_to(QuotationVerProjectA, foreign_key = "QuotationID")]
-#[table_name = "quotationitem_b"]
-pub struct QuotationItemB
-{    
-    pub	QuotationID	:	i32	,
-    pub	VersionNo	:	i32	,
-    pub	ProjectNo	:	i32	,
-    pub	ItemNo	:	i32	,
     pub	UnitBase	:	String	,
     pub	ChangeUnit	:	String	,
     pub	UnitFactor1	:	BigDecimal	,
@@ -669,19 +586,7 @@ pub struct QuotationItemB
     pub	AmountReturnTax	:	BigDecimal	,
     // pub	TarrifRate	:	BigDecimal	,
     // pub	AmountTarrif	:	BigDecimal	,
-}
 
-#[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable,AsChangeset, Associations, PartialEq, Default)]
-#[primary_key(QuotationID)]
-#[belongs_to(QuotationVerProjectA, foreign_key = "QuotationID")]
-#[table_name = "quotationitem_c"]
-pub struct QuotationItemC
-{    
-    pub	QuotationID	:	i32	,
-    pub	VersionNo	:	i32	,
-    pub	ProjectNo	:	i32	,
-    pub	ItemNo	:	i32	,
     pub	PriceCase	:	BigDecimal	,
     pub	AmountCase	:	BigDecimal	,
     pub	PurchaseInquiryNo	:	String	,
@@ -712,5 +617,4 @@ pub struct QuotationItemC
     pub	PurchasePrice	:	BigDecimal	,
     pub	PurchaseCurrency	:	String	,
     pub	DiscountPerItem	:	BigDecimal	,
-
 }

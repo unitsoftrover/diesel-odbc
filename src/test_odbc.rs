@@ -169,11 +169,11 @@ fn main(){
     let _connspec = std::env::var("DATABASE_URL").expect("DATABASE_URL");
     // let conn = RawConnection<safe::AutocommitOn>>::new(connspec);
     // let connspec = "driver={sql server};server=localhost;database=UnitsoftEBS;UID=main;PWD=unitsoft_main;";
-    let connspec = "driver={sql server};server=192.168.1.10;database=UnitsoftEBS;uid=main;pwd=unitsoft_main;";
+    let connspec = "driver={sql server};server=192.168.1.8;database=UnitsoftERP_DEV;uid=main;pwd=unitsoft_main;";
     let mut conn = RawConnection::<safe::AutocommitOn>::establish(connspec).unwrap();
 
     sales_test::test(&mut conn);
-    // println!("test odbc finish");
+    println!("test odbc finish");
     // company_test::test(&conn);
 }
 

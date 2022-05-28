@@ -15,8 +15,9 @@ doc = false
 
 [[bin]]
 name = "main_odbc"
-path = "src/main.rs"
+path = "src/sales_main.rs"
 doc = false
+
 
 [lib]
 path = "src/lib.rs"
@@ -33,8 +34,8 @@ libc = { version = "0.2.0", optional = true }
 #mysqlclient-sys = { version = "0.2.0", optional = false}
 percent-encoding = { version = "2.1.0", optional = false }
 actix-web = "3"
-diesel = {path = "D:/Rust/diesel/diesel", features = ["mysql", "r2d2","chrono","numeric"] }
-#diesel = {git = "https://github.com/unitsoftrover/diesel", branch="dev", features = ["mysql", "r2d2","chrono","numeric"] }
+diesel = {path = "D:/Rust/diesel/diesel", features = ["mysql", "r2d2","chrono","numeric", "100-column-tables"] }
+#diesel = {git = "https://github.com/unitsoftrover/diesel", branch="dev", features = ["mysql", "r2d2","chrono","numeric", "100-column-tables"] }
 dotenv = "0.15"
 env_logger = "0.7"
 failure = "0.1.8"
@@ -59,9 +60,9 @@ lazy_static = "1.4.0"
 
 [dependencies.diesel_derives]
 version = "~2.0.0"
-git = "https://github.com/unitsoftrover/diesel"
-branch="dev"
-#path = "D:/Rust/diesel/diesel_derives"
+#git = "https://github.com/unitsoftrover/diesel"
+#branch="dev"
+path = "D:/Rust/diesel/diesel_derives"
 
 [dev-dependencies]
 #chrono = "0.4"
@@ -69,4 +70,4 @@ env_logger = "0.7"
 
 [features]
 default = ["diesel_derives/mysql", "chrono", "numeric"]
-numeric = ["num-bigint", "bigdecimal", "num-traits", "num-integer"]
+numeric = ["bigdecimal", "num-bigint", "num-traits", "num-integer"]

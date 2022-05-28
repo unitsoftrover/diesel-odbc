@@ -19,16 +19,16 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
         current_office : &office,
     };
     {
-        use super::schema::quotation_a::dsl::*;
+        use super::schema::quotation::dsl::*;
         use super::schema::quotation_x::dsl as quotationx;
         let mut quotation1 = sales::Quotation::new_sales_order(user);
-        quotation1.fields_a.QuotationNo = "".to_string();
-        quotation1.fields_a.LeadSource = "sales".to_string();
-        quotation1.fields_a.QuotationBy = "admin".to_string();        
-        quotation1.fields_a.QuotationContactID = Some(1);
-        quotation1.fields_b.CompanyCode = "C0000001".to_string();
-        quotation1.fields_b.CompanyName = "友耐软件".to_string();
-        // quotation1.save(conn);
+        quotation1.fields.QuotationNo = "".to_string();
+        quotation1.fields.LeadSource = "sales".to_string();
+        quotation1.fields.QuotationBy = "admin".to_string();        
+        quotation1.fields.QuotationContactID = Some(1);
+        quotation1.fields.CompanyCode = "C0000001".to_string();
+        quotation1.fields.CompanyName = "友耐软件".to_string();
+        quotation1.save(conn);
         
         let mut quotation_x : QuotationX = Default::default();
         quotation_x.QuotationNo = "".to_string();
@@ -60,7 +60,7 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
             let qa = qa.get(0).unwrap();
             println!("qa no:{}", qa.QuotationNo);
 
-            let query = quotation_a.filter(QuotationNo.eq("SH21-Q0000001"));
+            let query = quotation.filter(QuotationNo.eq("SH21-Q0000001"));
             let result = query.load::<QuotationA>(conn).unwrap(); 
             if result.len()>0{
                 println!("delete quotation No:{:?}", result.get(0).unwrap().QuotationNo);
@@ -69,16 +69,16 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
     }
 
     {
-        use super::schema::quotation_a::dsl::*;
-        let quotations = quotation_a.filter(QuotationNo.eq("SH20-Q0000001"))
+        use super::schema::quotation::dsl::*;
+        let quotations = quotation.filter(QuotationNo.eq("SH20-Q0000001"))
             .load::<QuotationA>(conn)
             .expect("Error loading quotation");   
 
         for quotation1 in quotations {
             println!("Quotation No.:{}", quotation1.QuotationNo);
 
-            let quotation2 = Quotation2A::belonging_to(&quotation1)
-                .get_result::<Quotation2A>(conn).unwrap();
+            let quotation2 = Quotation2::belonging_to(&quotation1)
+                .get_result::<Quotation2>(conn).unwrap();
             println!("Quotation ID.:{}", quotation2.QuotationID);
         }
     }   

@@ -70,7 +70,7 @@ table! {
 
 table! {    
     #[sql_name = "quotation"]
-    quotation_a(QuotationID) {        
+    quotation(QuotationID) {        
         QuotationID	->	Integer,self_increase_id=true,       
         QuotationNo	->	VarChar,
         LeadSource	->	VarChar,
@@ -100,13 +100,6 @@ table! {
         MobileBill	->	VarChar,
         EmailBill	->	VarChar,
         OfficeCode	->	VarChar	,
-    }
-}
-
-table! {    
-    #[sql_name = "quotation"]
-    quotation_b (QuotationID) {
-        QuotationID	->	Integer,      
         CompanyID	->	Nullable<Integer>,
         CompanyCode	->	VarChar,
         CompanyName	->	VarChar,
@@ -131,14 +124,7 @@ table! {
         IsSubmited	->	Bool	,
         SubmitDate	->	Timestamp	,
         IsRejectToClient	->	Bool	,
-
-    }
-}
-
-table! {    
-    #[sql_name = "quotation"]
-    quotation_c (QuotationID) {
-        QuotationID	->	Integer,     
+         
         IsConfirmedSalesOrder	->	Bool	,
         ConfirmedBy	->	VarChar	,
         ConfirmDate	->	Timestamp	,
@@ -168,21 +154,20 @@ table! {
         Other18	->	VarChar	,
         Other19	->	VarChar	,
         Other20	->	VarChar	,
-        // Other21	->	VarChar	,
-        // Other22	->	VarChar	,
-        // Other23	->	VarChar	,
-        // Other24	->	VarChar	,
-        // Other25	->	VarChar	,
-        // Other26	->	VarChar	,
-        // Other27	->	VarChar	,
-        // Other28	->	VarChar	,   
+        Other21	->	VarChar	,
+        Other22	->	VarChar	,
+        Other23	->	VarChar	,
+        Other24	->	VarChar	,
+        Other25	->	VarChar	,
+        Other26	->	VarChar	,
+        Other27	->	VarChar	,
+        Other28	->	VarChar	,   
     }
 }
 
-
 table! { 
     #[sql_name = "quotation2"]
-    quotation2_a (QuotationID) {        
+    quotation2 (QuotationID) {        
         QuotationID	->	Integer	,
         BrokerID	->	Integer	,
         BrokerCode	->	Char	,
@@ -212,13 +197,7 @@ table! {
         ShipperETD	->	Timestamp	,
         ShipperETA	->	Timestamp	,
         LoadingAt	->	Varchar	,
-    }
-}
 
-table! {    
-    #[sql_name = "quotation2"]
-    quotation2_b (QuotationID) {
-        QuotationID	->	Integer,             
         SpecialInstruction	->	Varchar	,
         DeliveryInstruction	->	Varchar	,
         CustomsDocuments	->	Varchar	,
@@ -249,7 +228,7 @@ table! {
 
 table! {
     #[sql_name = "quotationver"]
-    quotationver_a(QuotationID)
+    quotationver(QuotationID)
     {
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,
@@ -281,14 +260,7 @@ table! {
         AdditionalTerms	->	Varchar	,
         PaymentMethodCode	->	Char	,
         PaymentMethod	->	Varchar	,
-    }
-}
 
-table! {    
-    #[sql_name = "quotationver"]
-    quotationver_b (QuotationID) {
-        QuotationID	->	Integer	,
-        VersionNo	->	Integer	,             
         BreachDuty	->	Varchar	,
         BreachSolve	->	Varchar	,
         QuotationSeed	->	Char	,
@@ -309,13 +281,14 @@ table! {
         ApproveDelivery	->	Bool	,
         ApproveDeliveryAgree	->	Bool	,
         DateApproveDelivery	->	Timestamp	,
-        ApproveDeliveryBy	->	Char	,                
+        ApproveDeliveryBy	->	Char	,       
     }
 }
 
+
 table!{
     #[sql_name = "quotationverproject"]
-    quotationverproject_a(QuotationID)
+    quotationverproject(QuotationID)
     {
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,
@@ -345,16 +318,7 @@ table!{
         TotalCostFixCurrency	->	Decimal	,
         IncludeTax	->	Bool	,
         TaxRate	->	Decimal	,
-    }
-}
-
-table!{
-    #[sql_name = "quotationverproject"]
-    quotationverproject_b(QuotationID)
-    {        
-        QuotationID	->	Integer	,
-        VersionNo	->	Integer	,
-        ProjectNo	->	Integer	,
+        
         CalcCommWithRate	->	Bool	,
         CommissionRate	->	Decimal	,
         SettledCommission	->	Bool	,
@@ -379,14 +343,14 @@ table!{
         DiscountRate	->	Decimal	,
         DiscountAmount	->	Decimal	,
         Deposit	->	Decimal	,
-        FixDeposit	->	Bool	,                
+        FixDeposit	->	Bool	,        
     }
 }
 
 
 table! {
     #[sql_name = "project"]
-    project_a(QuotationID)
+    project(QuotationID)
     {
         ID	->	Integer	,
         QuotationID	->	Integer	,
@@ -419,16 +383,7 @@ table! {
         Other8	->	Varchar	,
         Other9	->	Text	,
         Other10	->	Text	,
-    }
-
-}
-
-table!{
-    #[sql_name = "project"]
-    project_b(QuotationID)
-    {
-        QuotationID	->	Integer	,
-        ProjectNo	->	Integer	,
+        
         Other11	->	Text	,
         Other12	->	Text	,
         Other13	->	Text	,
@@ -457,16 +412,8 @@ table!{
         OriginCountry	->	Char	,
         DestCity	->	Varchar	,
         DestCountry	->	Char	,
-    }
 
-}
-
-table!{
-    #[sql_name = "project"]
-    project_c(QuotationID)
-    {        
-        QuotationID	->	Integer	,
-        ProjectNo	->	Integer	,
+        
         VesselName	->	Varchar	,
         VoyageNo	->	Varchar	,
         ETD	->	Timestamp	,
@@ -494,9 +441,10 @@ table!{
     }
 }
 
+
 table!{
     #[sql_name = "project2"]
-    project2_a(QuotationID){
+    project2(QuotationID){
         ID	->	Integer	,
         QuotationID	->	Integer	,
         ProjectNo	->	Integer	,
@@ -524,15 +472,7 @@ table!{
         HomeTelDestDelivery	->	Varchar	,
         MobileDestDelivery	->	Varchar	,
         EmailDestDelivery	->	Varchar	,
-    }
-}
 
-table!{
-    #[sql_name = "project2"]
-    project2_b(QuotationID)
-    {        
-        QuotationID	->	Integer	,
-        ProjectNo	->	Integer	,
         Allowance	->	Varchar	,
         Storage	->	Bool	,
         StorageAt	->	Char	,
@@ -553,7 +493,7 @@ table!{
 
 table!{
     #[sql_name = "quotationitem"]
-    quotationitem_a(QuotationID)
+    quotationitem(QuotationID)
     {
         QuotationID	->	Integer	,
         VersionNo	->	Integer	,
@@ -586,17 +526,7 @@ table!{
         QtyInvoiced	->	Decimal	,
         QtyDeliveried	->	Decimal	,
         QtyDeliveriedActual	->	Decimal	,
-    }
-}
 
-table!{
-    #[sql_name = "quotationitem"]
-    quotationitem_b(QuotationID)
-    {        
-        QuotationID	->	Integer	,
-        VersionNo	->	Integer	,
-        ProjectNo	->	Integer	,
-        ItemNo	->	Integer	,
         UnitBase	->	Char	,
         ChangeUnit	->	Char	,
         UnitFactor1	->	Decimal	,
@@ -628,17 +558,7 @@ table!{
         AmountReturnTax	->	Decimal	,
         // TarrifRate	->	Decimal	,
         // AmountTarrif	->	Decimal	,
-    }
-}
 
-table!{
-    #[sql_name = "quotationitem"]
-    quotationitem_c(QuotationID)
-    {
-        QuotationID	->	Integer	,
-        VersionNo	->	Integer	,
-        ProjectNo	->	Integer	,
-        ItemNo	->	Integer	,
         PriceCase	->	Decimal	,
         AmountCase	->	Decimal	,
         PurchaseInquiryNo	->	Char	,
@@ -668,6 +588,6 @@ table!{
         ServiceProjectID	->	Integer	,
         PurchasePrice	->	Decimal	,
         PurchaseCurrency	->	Char	,
-        DiscountPerItem	->	Decimal	,        
+        DiscountPerItem	->	Decimal	,       
     }
 }
