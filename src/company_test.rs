@@ -8,7 +8,7 @@ use diesel_odbc::connection::statement::{Statement, ResultSetState};
 use diesel_odbc::connection::RawConnection;
 use diesel_odbc::Odbc;
 
-use super::models::*;
+use diesel_odbc::models::*;
 use super::safe::*;
 
 pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
@@ -80,7 +80,7 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
         }    
     }
 
-    use super::schema::company::dsl::*;
+    use diesel_odbc::schema::company::dsl::*;
     // let mut query_builder = odbc::OdbcQueryBuilder::new();    
     // let ast_pass = AstPass::<odbc::Odbc>::to_sql(&mut query_builder);    
     // let primary_key = company.primary_key();    

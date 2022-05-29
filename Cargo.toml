@@ -71,3 +71,35 @@ env_logger = "0.7"
 [features]
 default = ["diesel_derives/mysql", "chrono", "numeric"]
 numeric = ["bigdecimal", "num-bigint", "num-traits", "num-integer"]
+
+[profile.dev]
+opt-level = 0 # 控制编译器的 --opt-level 参数，也就是优化参数
+debug = true # 控制编译器是否开启 `-g` 参数
+rpath = false # 控制编译器的 `-C rpath` 参数
+lto = false # 控制`-C lto` 参数，此参数影响可执行文件和静态库的生成，
+debug-assertions = true # 控制调试断言是否开启
+codegen-units = 64 # 控制编译器的 `-C codegen-units` 参数。注意，当`lto = true`时，此字段值被忽略
+# 发布模板, 对应`cargo build --release`命令
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = false
+debug-assertions = false
+codegen-units = 1
+# 测试模板，对应`cargo test`命令
+[profile.test]
+opt-level = 0
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
+codegen-units = 1
+# 性能评估模板，对应`cargo bench`命令
+[profile.bench]
+opt-level = 3
+debug = false
+rpath = false
+lto = false
+debug-assertions = false
+codegen-units = 1

@@ -2,22 +2,22 @@ extern crate num_traits as traits;
 
 use traits::{FromPrimitive, ToPrimitive};
 use bigdecimal::BigDecimal;
-use super::safe::AutocommitOn;
+use crate::safe::AutocommitOn;
 
 use diesel::prelude::*;
 use diesel::dsl::*;
 use diesel_odbc::connection::RawConnection;
 
-use super::models::*;
-use super::schema::quotation::dsl as qa;
-use super::schema::quotation2::dsl as q2a;
+use diesel_odbc::models::*;
+use diesel_odbc::schema::quotation::dsl as qa;
+use diesel_odbc::schema::quotation2::dsl as q2a;
 
-use super::schema::project::dsl as pa;
-use super::schema::project2::dsl as p2a;
+use diesel_odbc::schema::project::dsl as pa;
+use diesel_odbc::schema::project2::dsl as p2a;
 
-use super::schema::quotationver::dsl as qva;
-use super::schema::quotationverproject::dsl as qvpa;
-use super::schema::quotationitem::dsl as qia;
+use diesel_odbc::schema::quotationver::dsl as qva;
+use diesel_odbc::schema::quotationverproject::dsl as qvpa;
+use diesel_odbc::schema::quotationitem::dsl as qia;
 
 
 #[derive(Debug)]

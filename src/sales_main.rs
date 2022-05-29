@@ -5,38 +5,23 @@
 #![allow(dead_code)]
 #![recursion_limit="512"]
 
-#[macro_use]
 extern crate diesel;
 extern crate odbc_sys;
 extern crate log;
 extern crate lazy_static;
 extern crate chrono;
-
-use log::*;
-pub use self::odbc_sys::*;
+mod actions;
 
 use actix_web::{get, middleware, post, web, App, Error, HttpResponse, HttpServer};
 use diesel::r2d2::{ConnectionManager};
 use uuid::Uuid;
 
-mod actions;
-mod models;
-mod schema;
-pub mod odbc;
-use odbc::connection::RawConnection;
+pub use self::odbc_sys::*;
+use diesel_odbc::connection::RawConnection;
 use odbc_safe as safe;
+use diesel_odbc::models;
 
-pub fn main_test()
-{
-    //::main_test();
-    // ::odbc::odbc_test();
-
-    println!("main_test");
-}
-
-// type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 type DbPool = r2d2::Pool<ConnectionManager<RawConnection<'static, safe::AutocommitOn>>>;
-
 
 /// Finds user by UID.
 #[get("/user/{user_id}")]

@@ -1,8 +1,8 @@
 use diesel::prelude::*;
 use diesel::dsl::*;
-use diesel_odbc::connection::RawConnection;
+use super::RawConnection;
 
-use super::models::*;
+use diesel_odbc::models::*;
 use super::sales;
 use super::safe::*;
 
@@ -19,8 +19,8 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
         current_office : &office,
     };
     {
-        use super::schema::quotation::dsl::*;
-        use super::schema::quotation_x::dsl as quotationx;
+        use diesel_odbc::schema::quotation::dsl::*;
+        use diesel_odbc::schema::quotation_x::dsl as quotationx;
         let mut quotation1 = sales::Quotation::new_sales_order(user);
         quotation1.fields.QuotationNo = "".to_string();
         quotation1.fields.LeadSource = "sales".to_string();
@@ -69,7 +69,7 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
     }
 
     {
-        use super::schema::quotation::dsl::*;
+        use diesel_odbc::schema::quotation::dsl::*;
         let quotations = quotation.filter(QuotationNo.eq("SH20-Q0000001"))
             .load::<QuotationA>(conn)
             .expect("Error loading quotation");   

@@ -6,13 +6,6 @@
 #![recursion_limit="512"]
 #![warn(warnings)]
 
-#[macro_use]
-extern crate diesel;
-extern crate log;
-
-mod actions;
-mod models;
-mod schema;
 mod sales;
 mod sales_test;
 mod company_test;
@@ -150,8 +143,9 @@ simple_clause!(
 
 
 fn main(){
-    println!("test odbc");
-    use self::schema::company::*;
+    println!("test odbc1");
+
+    use diesel_odbc::schema::company::*;
     let select = ReturningClauseWithSelect(CompanyName);
 
     let mut query_builder = OdbcQueryBuilder::new();    
@@ -160,7 +154,7 @@ fn main(){
 
     let sum1 = add_as!(1,2,3);
     println!("sum:{}", sum1);
-
+    
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::builder().target(env_logger::Target::Stdout).init();
     dotenv::dotenv().ok();
@@ -174,7 +168,7 @@ fn main(){
 
     sales_test::test(&mut conn);
     println!("test odbc finish");
-    // company_test::test(&conn);
+    company_test::test(&mut conn);
 }
 
 

@@ -7,6 +7,7 @@ table! {
 }
 
 table! {    
+    
     company (CompanyCode) {
         CompanyID -> Integer,self_increase_id=false,
         CompanyCode -> VarChar,       
