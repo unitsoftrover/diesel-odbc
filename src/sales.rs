@@ -3,6 +3,7 @@ extern crate num_traits as traits;
 use traits::{FromPrimitive, ToPrimitive};
 use bigdecimal::BigDecimal;
 use crate::safe::AutocommitOn;
+use chrono::NaiveDateTime;
 
 use diesel::prelude::*;
 use diesel::dsl::*;
@@ -23,9 +24,6 @@ use diesel_odbc::schema::quotationitem::dsl as qia;
 #[derive(Debug)]
 pub struct Quotation{    
     pub fields: QuotationA,
-    // pub fields_a: QuotationA,
-    // pub fields_b: QuotationB,
-    // pub fields_c: QuotationC,
     pub fields2: Quotation2,
     pub list_quotation_ver : Vec<QuotationVer>,
     pub list_project : Vec<Project>,
@@ -95,6 +93,16 @@ impl Status{
     }
 }
 
+impl QuotationVer{
+    pub fn all_items(&self) -> Vec<QuotationItem>{
+        let all_items = Vec::new();
+        // for ver_project in self.list_quotation_ver_project.iter(){
+        //     all_items.push(ver_project.list_quotation_item);
+        // }
+
+        return all_items;
+    }
+}
 
 impl Quotation{
     pub fn new() -> Self {
@@ -118,6 +126,8 @@ impl Quotation{
         });
 
         let project = quotation.list_project.get_mut(0).unwrap();
+        project.fields.ProjectNo = 1;
+        project.fields2.ProjectNo = 1;
 
         let mut version = QuotationVer{
             fields : Default::default(),
@@ -129,7 +139,6 @@ impl Quotation{
 
         quotation.list_quotation_ver.push(version);
         let version = quotation.list_quotation_ver.get_mut(0).unwrap();
-        version.fields.VersionNo = 1;
         quotation.current_version = version;
 
         let version_ptr = version as *mut QuotationVer;
@@ -192,6 +201,7 @@ impl Quotation{
 
         let quotation_ptr = &mut quotation as * mut Quotation;    
 
+        quotation.list_project.truncate(0);
         p_a.into_iter().for_each(|pa|{
             let mut p2a : Option<Project2A> = None;
             for i in 0..p2_a.len(){
@@ -208,11 +218,10 @@ impl Quotation{
                 current_ver_project : 0 as *mut QuotationVerProject,
                 status : Default::default(),
             };
-            
-            quotation.list_project.truncate(0);
             quotation.list_project.push(project);
         });
 
+        quotation.list_quotation_ver.truncate(0);
         qv_a.into_iter().for_each(|qva|{
             
             let mut version = QuotationVer{
@@ -246,11 +255,9 @@ impl Quotation{
                 };
                 
                 version.list_quotation_ver_project.push(ver_project);    
-            };
-            
-            quotation.list_quotation_ver.truncate(0);
+            };            
+           
             quotation.list_quotation_ver.push(version);
-
         });
         
         
@@ -281,6 +288,34 @@ impl Quotation{
             self.status.is_creating = false;
         }
 
+        for project in &mut self.list_project
+        {
+            project.fields.QuotationID = self.fields.QuotationID;
+            project.fields2.QuotationID = self.fields.QuotationID;
+            project.fields2.ProjectNo = project.fields.ProjectNo;
+            if project.status.is_creating{
+                let p = insert_into(pa::project).values(&project.fields).load::<ProjectA>(conn).unwrap();
+                if p.len()==1{
+                    let p = p.get(0).unwrap();
+                    project.fields = p.clone();
+                }
+
+                let p2 = insert_into(p2a::project2).values(&project.fields2).load::<Project2A>(conn).unwrap();
+                if p2.len()==1{
+                    let p2 = p2.get(0).unwrap();
+                    project.fields2 = p2.clone();
+                }
+            }
+            else
+            {
+                update(pa::project.filter(pa::QuotationID.eq(self.fields.QuotationID)).filter(pa::ProjectNo.eq(project.fields.ProjectNo))).set(&project.fields).load::<ProjectA>(conn).unwrap();
+                update(p2a::project2.filter(p2a::QuotationID.eq(self.fields.QuotationID)).filter(p2a::ProjectNo.eq(project.fields2.ProjectNo))).set(&project.fields2).load::<Project2A>(conn).unwrap();
+            }
+            if project.status.is_creating{
+                project.status.is_creating = false;
+            }
+        }
+
         for version in &mut self.list_quotation_ver
         {
             version.fields.QuotationID = self.fields.QuotationID;
@@ -293,7 +328,7 @@ impl Quotation{
             }
             else
             {
-                update(qva::quotationver.filter(qva::QuotationID.eq(self.fields.QuotationID))).set(&version.fields).load::<QuotationVerA>(conn).unwrap();
+                update(qva::quotationver.filter(qva::QuotationID.eq(self.fields.QuotationID)).filter(qva::VersionNo.eq(version.fields.VersionNo))).set(&version.fields).load::<QuotationVerA>(conn).unwrap();
             }
             if version.status.is_creating{
                 version.status.is_creating = false;
@@ -303,6 +338,7 @@ impl Quotation{
             {
                 ver_project.fields.QuotationID = version.fields.QuotationID;
                 ver_project.fields.VersionNo = version.fields.VersionNo;
+                unsafe{ver_project.fields.ProjectNo = (*ver_project.project).fields.ProjectNo;}
                 
                 if ver_project.status.is_creating{
                     let qvp_a = insert_into(qvpa::quotationverproject).values(&ver_project.fields).load::<QuotationVerProjectA>(conn).unwrap();
@@ -313,7 +349,7 @@ impl Quotation{
                 }
                 else
                 {
-                    update(qvpa::quotationverproject.filter(qvpa::QuotationID.eq(ver_project.fields.QuotationID))).set(&ver_project.fields).load::<QuotationVerProjectA>(conn).unwrap();
+                    update(qvpa::quotationverproject.filter(qvpa::QuotationID.eq(ver_project.fields.QuotationID)).filter(qvpa::VersionNo.eq(ver_project.fields.VersionNo)).filter(qvpa::ProjectNo.eq(ver_project.fields.ProjectNo))).set(&ver_project.fields).load::<QuotationVerProjectA>(conn).unwrap();
                 }
 
                 for item in &mut ver_project.list_quotation_item
@@ -321,7 +357,6 @@ impl Quotation{
                     item.fields.QuotationID = ver_project.fields.QuotationID;
                     item.fields.VersionNo = ver_project.fields.VersionNo;
                     item.fields.ProjectNo = ver_project.fields.ProjectNo;
-                    
                     
                     if item.status.is_creating{
                         let qi_a = insert_into(qia::quotationitem).values(&item.fields).load::<QuotationItemA>(conn).unwrap();
@@ -332,7 +367,7 @@ impl Quotation{
                     }
                     else
                     {
-                        update(qia::quotationitem.filter(qia::QuotationID.eq(item.fields.QuotationID))).set(&item.fields).load::<QuotationItemA>(conn).unwrap();
+                        update(qia::quotationitem.filter(qia::QuotationID.eq(item.fields.QuotationID)).filter(qia::VersionNo.eq(item.fields.VersionNo)).filter(qia::ProjectNo.eq(item.fields.ProjectNo)).filter(qia::ItemNo.eq(item.fields.ItemNo))).set(&item.fields).load::<QuotationItemA>(conn).unwrap();
                     }
 
                     if item.status.is_creating{
@@ -343,13 +378,8 @@ impl Quotation{
                 if ver_project.status.is_creating{
                     ver_project.status.is_creating = false;
                 }
-
             }
-
         };      
-        
-         
-
         
     }
 
@@ -430,6 +460,121 @@ impl Quotation{
         });
 
     }
+
+    /// <summary>
+    /// 通过销售机会建立合同
+    /// 设置合同状态，建立合同号
+    /// </summary>
+    /// <param name="user"></param>
+    pub fn create_contract<'env>(&mut self, user : &User, conn : &mut RawConnection<'env, AutocommitOn>)            
+    // pub fn create_contract<TyConn : diesel::Connection >(&mut self, user : &User, conn : &mut TyConn) 
+    {
+        //释放销售机会占用库存
+        // ReleaseStock();
+        for project in self.list_project.iter_mut(){
+            project.fields.JobCreated = "1".to_string();
+        }
+        
+        let str_sql = "update Project set StatusQuotation = '".to_string() + StatusQuotation::BOOKED + "'"
+            + ", JobCreated = 1, DateJobCreatedBy = getdate(), JobCreatedBy = '" + &user.user_code + "'"
+            + " where QuotationID = " + &self.fields.QuotationID.to_string() + ";"
+            + " Exec MakeJobNo " + &self.fields.QuotationID.to_string() + ", 0, ''";
+        conn.execute(&str_sql).unwrap();
+
+        // let vec_project = pa::project.filter(pa::QuotationID.eq(self.fields.QuotationID)).load::<ProjectA>(conn).unwrap();
+        // for project in vec_project.iter(){
+        //     for item in self.list_project.iter_mut(){
+        //         if item.fields.ProjectNo == project.ProjectNo{
+        //             item.fields.JobNo = project.JobNo.clone();
+        //         }
+        //     }
+        // }
+
+        let quota = qa::quotation.filter(qa::QuotationID.eq(self.fields.QuotationID)).load::<QuotationA>(conn).unwrap();
+        if quota.len() == 1{
+            self.fields.SalesOrderNo = quota[0].SalesOrderNo.clone();
+        }
+
+        for project in self.list_project.iter()
+        {
+            let str_sql = "update SalesProduct2Purchase set SalesOrderNo=(select JobNo from Project where QuotationID =".to_string() + &self.fields.QuotationID.to_string() + " and ProjectNo = " + &project.fields.ProjectNo.to_string() + ")"
+                    + " where QuotationID=" + &self.fields.QuotationID.to_string() + " and ProjectNo=" + &project.fields.ProjectNo.to_string();
+            conn.execute(&str_sql).unwrap();
+        }
+
+        //锁定销售订单占用库存        
+        if unsafe{(*self.current_version).fields.RequestPrepareDelivery}{
+            // LockStock();
+        }
+
+        //更新QtyLockStock
+        let mut str_sql = "".to_string();
+        for ver_project in unsafe{(*self.current_version).list_quotation_ver_project.iter()}
+        {
+            for item in ver_project.list_quotation_item.iter()
+            {
+                str_sql += &("update QuotationItem set QtyLockStock = ".to_string() + &item.fields.QtyLockStock.to_string() + " where QuotationID="
+                        + &item.fields.QuotationID.to_string() + " and VersionNo=" + &item.fields.VersionNo.to_string() + " and ProjectNo=" + &item.fields.ProjectNo.to_string()
+                        + " and ItemNo=" + &item.fields.ItemNo.to_string() + " and Number = " + &item.fields.Number.to_string() + ";");
+            }
+        }
+        conn.execute(&str_sql).unwrap();
+    }
+
+    // 删除销售合同
+    // 如果有销售机会则只把状态恢复到销售机会阶段
+    pub fn delete_contract<'env>(&mut self, conn: &mut RawConnection<'env, AutocommitOn>)
+    {
+        //已确认，不能删除
+        if self.fields.IsConfirmedSalesOrder{
+            return;
+        }
+
+        //有销售机会
+        if self.fields2.NeedSurvey
+        {
+            //释放销售合同占用库存
+            if unsafe{(*self.current_version).fields.RequestPrepareDelivery}{
+                // ReleaseStock();
+            }
+
+            for project in self.list_project.iter_mut()
+            {
+                project.fields.StatusQuotation = StatusQuotation::PENDING.to_string();
+                project.fields.JobCreated = "1".to_string();
+                project.fields.DateJobCreatedBy = NaiveDateTime::default();
+                project.fields.JobCreatedBy = "".to_string();
+                project.fields.JobNo = "".to_string();
+            }
+
+            //锁定销售机会占用库存
+            if unsafe{(*self.current_version).fields.RequestPrepareDelivery} 
+            {
+                // LockStock();
+            }
+
+            //如果销售合同数量进行了修改，则在删除时把数量恢复为批准备货的数量，否则会出现销售机会锁定库存数量错误
+            for item in unsafe{(*self.current_version).all_items().iter_mut()}
+            {
+                if item.fields.Quantity != item.fields.QtyApprovePrepare && item.fields.QtyApprovePrepare.to_f64().unwrap() != 0f64
+                {
+                    item.fields.Quantity = item.fields.QtyApprovePrepare.clone();
+                    item.fields.QtyLockStock = item.fields.QtyApprovePrepare.clone();
+                }
+            }
+        }
+        else
+        {
+            //设置采购合同关联的数据            
+            for project in self.list_project.iter()
+            {
+                let str_sql = "update rfqverproject set RefNo = '' where JobNo = '".to_string() + &project.fields.PurchaserOrderNo + "'";
+                conn.execute(&str_sql).unwrap();
+            }
+            // Delete();
+        }
+    }
+
 
     pub fn confirm(&mut self, user : &User){
 

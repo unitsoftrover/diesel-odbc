@@ -558,7 +558,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "chrono",
- "diesel_derives",
+ "diesel_derives 2.0.0",
  "itoa 0.4.8",
  "mysqlclient-sys",
  "num-bigint",
@@ -579,7 +579,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "diesel",
- "diesel_derives",
+ "diesel_derives 2.0.0 (git+https://github.com/unitsoftrover/diesel?branch=dev)",
  "doc-comment",
  "dotenv",
  "encoding_rs",
@@ -606,6 +606,16 @@ dependencies = [
 [[package]]
 name = "diesel_derives"
 version = "2.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "diesel_derives"
+version = "2.0.0"
+source = "git+https://github.com/unitsoftrover/diesel?branch=dev#0b0f03d74f7b7845d0379d0241fec8ff79c83302"
 dependencies = [
  "proc-macro2",
  "quote",

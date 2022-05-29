@@ -74,6 +74,7 @@ table! {
     quotation(QuotationID) {        
         QuotationID	->	Integer,self_increase_id=true,       
         QuotationNo	->	VarChar,
+        SalesOrderNo->	VarChar,
         LeadSource	->	VarChar,
         QuotationBy	->	VarChar,
         QuotationTo	->	VarChar,
@@ -353,7 +354,7 @@ table! {
     #[sql_name = "project"]
     project(QuotationID)
     {
-        ID	->	Integer	,
+        ID	->	Integer,self_increase_id=true,
         QuotationID	->	Integer	,
         ProjectNo	->	Integer	,
         RFQID	->	Integer	,
@@ -446,7 +447,7 @@ table! {
 table!{
     #[sql_name = "project2"]
     project2(QuotationID){
-        ID	->	Integer	,
+        ID	->	Integer,self_increase_id=true,
         QuotationID	->	Integer	,
         ProjectNo	->	Integer	,
         RFQID	->	Integer	,
@@ -564,12 +565,14 @@ table!{
         AmountCase	->	Decimal	,
         PurchaseInquiryNo	->	Char	,
         QtyMRPImported	->	Decimal	,
-        QtyProductionImported	->	Decimal	,
+        QtyProductionImported	->	Decimal	,       
+        QtyLockStock->	Decimal	, 
         QtyUseStock	->	Decimal	,
         QtyArrangedUseStock	->	Decimal	,
         QtyDeliveriedUseStock	->	Decimal	,
         QtyPerPackage	->	Decimal	,
         QtyPerPackageInner	->	Decimal	,
+        QtyApprovePrepare	->	Decimal	,
         BOMCode	->	Char	,
         ProductCodeClient	->	Varchar	,
         // CaseNo	->	Varchar	,

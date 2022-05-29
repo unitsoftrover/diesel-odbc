@@ -143,7 +143,7 @@ simple_clause!(
 
 
 fn main(){
-    println!("test odbc1");
+    println!("test odbc");
 
     use diesel_odbc::schema::company::*;
     let select = ReturningClauseWithSelect(CompanyName);
@@ -168,7 +168,7 @@ fn main(){
 
     sales_test::test(&mut conn);
     println!("test odbc finish");
-    company_test::test(&mut conn);
+    // company_test::test(&mut conn);
 }
 
 

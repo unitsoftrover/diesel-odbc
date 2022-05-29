@@ -44,6 +44,18 @@
             "cwd": "${workspaceFolder}", 
             "environment": [], 
             "console":"integratedTerminal"
-        },         
+        },
+        { 
+            "name": "test_a", 
+            /*"preLaunchTask": "build", */
+            "type": "cppvsdbg", 
+            "request": "launch", 
+            "program": "${workspaceFolder}/target/debug/a.exe", 
+            "args": [], 
+            "stopAtEntry": false, 
+            "cwd": "${workspaceFolder}", 
+            "environment": [], 
+            "console":"integratedTerminal"
+        },           
     ] 
 }

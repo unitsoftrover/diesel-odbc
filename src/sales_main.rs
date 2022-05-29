@@ -48,6 +48,7 @@ async fn get_user(
             .body(format!("No user found with uid: {}", user_uid));
         Ok(res)
     }
+    
 }
 
 /// Inserts new user with name defined in form.
