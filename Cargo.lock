@@ -538,6 +538,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-model"
+version = "1.0.0"
+dependencies = [
+ "bigdecimal",
+ "chrono",
+ "diesel",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "serde",
+ "serde_derive",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -558,7 +572,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "chrono",
- "diesel_derives 2.0.0",
+ "diesel_derives",
  "itoa 0.4.8",
  "mysqlclient-sys",
  "num-bigint",
@@ -577,9 +591,11 @@ dependencies = [
  "bigdecimal",
  "bitflags",
  "byteorder",
+ "cfg-if 1.0.0",
  "chrono",
+ "data-model",
  "diesel",
- "diesel_derives 2.0.0 (git+https://github.com/unitsoftrover/diesel?branch=dev)",
+ "diesel_derives",
  "doc-comment",
  "dotenv",
  "encoding_rs",
@@ -606,16 +622,6 @@ dependencies = [
 [[package]]
 name = "diesel_derives"
 version = "2.0.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "diesel_derives"
-version = "2.0.0"
-source = "git+https://github.com/unitsoftrover/diesel?branch=dev#0b0f03d74f7b7845d0379d0241fec8ff79c83302"
 dependencies = [
  "proc-macro2",
  "quote",

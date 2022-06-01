@@ -1,3 +1,6 @@
+[workspace]
+members = ["src/data-model"]
+
 [package]
 name = "diesel-odbc"
 version = "1.0.0"
@@ -23,6 +26,7 @@ doc = false
 path = "src/lib.rs"
 doc = false
 
+
 [dependencies]
 byteorder = "1.0"
 bitflags = { version = "1.2.0", optional = false }
@@ -34,7 +38,7 @@ libc = { version = "0.2.0", optional = true }
 #mysqlclient-sys = { version = "0.2.0", optional = false}
 percent-encoding = { version = "2.1.0", optional = false }
 actix-web = "3"
-diesel = {path = "D:/Rust/diesel/diesel", features = ["mysql", "r2d2","chrono","numeric", "100-column-tables"] }
+diesel = {path = "D:/Rust/diesel/diesel", features = ["mysql", "r2d2","chrono","numeric", "32-column-tables"] }
 #diesel = {git = "https://github.com/unitsoftrover/diesel", branch="dev", features = ["mysql", "r2d2","chrono","numeric", "100-column-tables"] }
 dotenv = "0.15"
 env_logger = "0.7"
@@ -57,20 +61,24 @@ encoding_rs = "0.8.14"
 doc-comment = "0.3.1"
 url = "1.7"
 lazy_static = "1.4.0"
+cfg-if = "1.0.0"
+data-model = {version="1.0.0", path="src/data-model"}
 
 [dependencies.diesel_derives]
 version = "~2.0.0"
-git = "https://github.com/unitsoftrover/diesel"
-branch="dev"
-#path = "D:/Rust/diesel/diesel_derives"
+#git = "https://github.com/unitsoftrover/diesel"
+#branch="dev"
+path = "D:/Rust/diesel/diesel_derives"
 
 [dev-dependencies]
 #chrono = "0.4"
 env_logger = "0.7"
 
 [features]
-default = ["diesel_derives/mysql", "chrono", "numeric"]
+default = ["diesel_derives/mysql", "chrono", "numeric", "odbc"]
 numeric = ["bigdecimal", "num-bigint", "num-traits", "num-integer"]
+odbc = []
+postgres = []
 
 [profile.dev]
 opt-level = 0 # 控制编译器的 --opt-level 参数，也就是优化参数
@@ -78,7 +86,7 @@ debug = true # 控制编译器是否开启 `-g` 参数
 rpath = false # 控制编译器的 `-C rpath` 参数
 lto = false # 控制`-C lto` 参数，此参数影响可执行文件和静态库的生成，
 debug-assertions = true # 控制调试断言是否开启
-codegen-units = 64 # 控制编译器的 `-C codegen-units` 参数。注意，当`lto = true`时，此字段值被忽略
+codegen-units = 16 # 控制编译器的 `-C codegen-units` 参数。注意，当`lto = true`时，此字段值被忽略
 # 发布模板, 对应`cargo build --release`命令
 [profile.release]
 opt-level = 3

@@ -271,7 +271,7 @@ impl BindData {
     }
 
     pub fn value(&'_ self) -> Option<OdbcValue<'_>> {
-        if self.is_null() {
+        if self.is_null(){
             None
         } else {
             let tpe = (self.tpe, self.flags).into();
@@ -280,8 +280,8 @@ impl BindData {
         }
     }
 
-    pub fn is_null(&self) -> bool {
-        self.length == -1
+    pub fn is_null(&self) -> bool {       
+        self.length == -1        
     }
 
     fn update_buffer_length(&mut self) {

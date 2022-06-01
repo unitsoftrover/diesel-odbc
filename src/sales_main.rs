@@ -19,7 +19,9 @@ use uuid::Uuid;
 pub use self::odbc_sys::*;
 use diesel_odbc::connection::RawConnection;
 use odbc_safe as safe;
-use diesel_odbc::models;
+use data_model::models;
+use data_model::schema;
+
 
 type DbPool = r2d2::Pool<ConnectionManager<RawConnection<'static, safe::AutocommitOn>>>;
 

@@ -1,12 +1,13 @@
 use diesel::prelude::*;
 use super::RawConnection;
 
-use diesel_odbc::models::*;
+use data_model::models::*;
 use super::sales;
 use super::safe::*;
 
 pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
-{
+{        
+
     let office = sales::Office{
         office_code : "SH".to_string(),
         office_name : "unitsoft".to_string(),
@@ -20,9 +21,7 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
     let mut quotation_id = -1;
     _ = quotation_id;
     {
-        // use diesel_odbc::schema::quotation::dsl::*;
-        // use diesel_odbc::schema::quotation_x::dsl as quotationx;
-        let mut quotation1 = sales::Quotation::new_sales_order(user);
+        let mut quotation1 = sales::Quotation::new_sales_order(&user);        
         quotation1.fields.QuotationNo = "".to_string();
         quotation1.fields.LeadSource = "sales".to_string();
         quotation1.fields.QuotationBy = "admin".to_string();        
@@ -31,6 +30,15 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
         quotation1.fields.CompanyName = "友耐软件".to_string();
         quotation1.save(conn);
         quotation_id = quotation1.fields.QuotationID;
+
+        // quotation1.create_contract(&user, conn);
+        // quotation1.calculate();
+        // quotation1.confirm(&user);
+        // quotation1.check(&user);
+        // quotation1.request_prepare_goods(&user);
+        quotation1.save(conn);
+
+        // quotation1.create_contract1(conn);
         
         // let mut quotation_x : QuotationX = Default::default();
         // quotation_x.QuotationNo = "".to_string();
@@ -71,8 +79,7 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
     }
     
     {
-        
-        use diesel_odbc::schema::quotation::dsl::*;
+        use super::schema::quotation::dsl::*;
         let quotations = quotation.filter(QuotationID.eq(quotation_id))
             .load::<QuotationA>(conn)
             .expect("Error loading quotation");   

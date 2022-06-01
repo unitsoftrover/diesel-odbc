@@ -9,16 +9,16 @@ use diesel::prelude::*;
 use diesel::dsl::*;
 use diesel_odbc::connection::RawConnection;
 
-use diesel_odbc::models::*;
-use diesel_odbc::schema::quotation::dsl as qa;
-use diesel_odbc::schema::quotation2::dsl as q2a;
+use data_model::models::*;
+use data_model::schema::quotation::dsl as qa;
+use data_model::schema::quotation2::dsl as q2a;
 
-use diesel_odbc::schema::project::dsl as pa;
-use diesel_odbc::schema::project2::dsl as p2a;
+use data_model::schema::project::dsl as pa;
+use data_model::schema::project2::dsl as p2a;
 
-use diesel_odbc::schema::quotationver::dsl as qva;
-use diesel_odbc::schema::quotationverproject::dsl as qvpa;
-use diesel_odbc::schema::quotationitem::dsl as qia;
+use data_model::schema::quotationver::dsl as qva;
+use data_model::schema::quotationverproject::dsl as qvpa;
+use data_model::schema::quotationitem::dsl as qia;
 
 
 #[derive(Debug)]
@@ -104,6 +104,46 @@ impl QuotationVer{
     }
 }
 
+#[cfg(feature="mysql")]
+type TyConn = diesel::MysqlConnection;
+
+#[cfg(feature="sqlite")]
+type TyConn = diesel::SqliteConnection;
+
+#[cfg(feature="postgres")]
+type TyConn = diesel::PgConnection;
+
+// #[cfg(feature="odbc")]
+// type TyConn<'env> = diesel_odbc::connection::RawConnection<'env, odbc_safe::AutocommitOn>;
+
+// type TyConn<'env> = diesel_odbc::connection::RawConnection<'env, odbc_safe::AutocommitOn>;
+
+#[cfg(not(any(feature="mysql", feature="sqlite", feature="postgres")))]
+type TyConn<'env> = diesel_odbc::connection::RawConnection<'env, odbc_safe::AutocommitOn>;
+
+// type TyConn<'env> = diesel_odbc::connection::RawConnection<'env, odbc_safe::AutocommitOn>;
+
+
+// cfg_if::cfg_if! {
+    
+//     if #[cfg(feature="sqlite")]{
+//         type TyConn = diesel::SqliteConnection;
+//     }
+//     else if #[cfg(feature="mysql")]{
+//         type TyConn = diesel::MysqlConnection;
+//     }    
+//     else if #[cfg(feature="postgres")]{
+//         type TyConn = diesel::PgConnection;
+//     }
+//     else if #[cfg(feature="odbc")]{
+//         type TyConn<'env> = diesel_odbc::connection::RawConnection<'env, odbc_safe::AutocommitOn>;
+//     }
+//     else{
+//         type TyConn<'env> = diesel_odbc::connection::RawConnection<'env, odbc_safe::AutocommitOn>;
+//     }
+// }
+
+
 impl Quotation{
     pub fn new() -> Self {
         let mut quotation = Self{
@@ -158,10 +198,10 @@ impl Quotation{
         quotation        
     }
     
-    pub fn new_sales_order(user : User) -> Self {
+    pub fn new_sales_order(user : &User) -> Self {
         let mut quotation = Self::new();        
         
-        quotation.fields.CreateBy = user.user_code;
+        quotation.fields.CreateBy = user.user_code.clone();
         quotation.fields.OfficeCode = user.current_office.office_code.clone();
         quotation.fields.CreateDate = chrono::Utc::now().naive_utc();
         
@@ -461,13 +501,19 @@ impl Quotation{
 
     }
 
+    pub fn create_contract1(&mut self, conn : &mut TyConn)    
+    {
+        conn.execute(&"select 1").unwrap();
+        qa::quotation.filter(qa::QuotationID.eq(self.fields.QuotationID)).load::<QuotationA>(conn).unwrap();
+    }
+
+
     /// <summary>
     /// 通过销售机会建立合同
     /// 设置合同状态，建立合同号
     /// </summary>
     /// <param name="user"></param>
-    pub fn create_contract<'env>(&mut self, user : &User, conn : &mut RawConnection<'env, AutocommitOn>)            
-    // pub fn create_contract<TyConn : diesel::Connection >(&mut self, user : &User, conn : &mut TyConn) 
+    pub fn create_contract<'env>(&mut self, user : &User, conn : &mut TyConn)            
     {
         //释放销售机会占用库存
         // ReleaseStock();
@@ -489,6 +535,7 @@ impl Quotation{
         //         }
         //     }
         // }
+        
 
         let quota = qa::quotation.filter(qa::QuotationID.eq(self.fields.QuotationID)).load::<QuotationA>(conn).unwrap();
         if quota.len() == 1{
@@ -518,12 +565,14 @@ impl Quotation{
                         + " and ItemNo=" + &item.fields.ItemNo.to_string() + " and Number = " + &item.fields.Number.to_string() + ";");
             }
         }
-        conn.execute(&str_sql).unwrap();
+        if str_sql.len() != 0{
+            conn.execute(&str_sql).unwrap();
+        }
     }
 
     // 删除销售合同
     // 如果有销售机会则只把状态恢复到销售机会阶段
-    pub fn delete_contract<'env>(&mut self, conn: &mut RawConnection<'env, AutocommitOn>)
+    pub fn delete_contract<'env>(&mut self, conn: &mut TyConn)
     {
         //已确认，不能删除
         if self.fields.IsConfirmedSalesOrder{

@@ -16,6 +16,8 @@ use diesel::sql_types::*;
 use diesel_odbc::connection::RawConnection;
 use diesel_odbc::{OdbcQueryBuilder,Odbc};
 use odbc_safe as safe;
+use data_model::models;
+use data_model::schema;
 
 macro_rules! add_as{
     ($a:expr)=>
@@ -145,7 +147,7 @@ simple_clause!(
 fn main(){
     println!("test odbc");
 
-    use diesel_odbc::schema::company::*;
+    use schema::company::*;
     let select = ReturningClauseWithSelect(CompanyName);
 
     let mut query_builder = OdbcQueryBuilder::new();    

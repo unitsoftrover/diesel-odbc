@@ -114,6 +114,8 @@ impl<'a> Field<'a, Odbc> for OdbcField<'a> {
     }
 
     fn value(&self) -> Option<diesel::backend::RawValue<'a, Odbc>> {
-        self.bind.value()
+
+        let val = self.bind.value();        
+        val
     }
 }
