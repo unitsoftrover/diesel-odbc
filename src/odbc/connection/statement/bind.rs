@@ -275,11 +275,15 @@ impl BindData {
             None
         } else {
             let tpe = (self.tpe, self.flags).into();
-            let val = OdbcValue::new(&self.bytes, tpe);           
+            let val = OdbcValue::new(&self.bytes, tpe);
             Some(val)
         }
     }
 
+    pub fn raw_value(&self)->Option<&'_ [u8]> {
+        return Some(&self.bytes)
+    }
+    
     pub fn is_null(&self) -> bool {       
         self.length == -1        
     }

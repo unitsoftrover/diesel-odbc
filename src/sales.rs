@@ -519,6 +519,9 @@ impl Quotation{
         // ReleaseStock();
         for project in self.list_project.iter_mut(){
             project.fields.JobCreated = "1".to_string();
+            project.fields.StatusQuotation = StatusQuotation::BOOKED.to_string();
+            project.fields.DateJobCreatedBy = chrono::Local::now().naive_local();
+            project.fields.JobCreatedBy = user.user_code.to_string();
         }
         
         let str_sql = "update Project set StatusQuotation = '".to_string() + StatusQuotation::BOOKED + "'"
@@ -670,13 +673,15 @@ impl Quotation{
         {
             let mut b_have_available_project = false;
 
-            let _ = self.list_project.iter().map(|project|{
-                    //销售合同处于booking状态
-                    if project.fields.StatusQuotation == StatusQuotation::BOOKED
-                    {
-                        b_have_available_project = true;                        
-                    }                                
-            });
+            let _ : Vec<_> = self.list_project.iter().map(|project|{
+                //销售合同处于booking状态
+                if project.fields.StatusQuotation == StatusQuotation::BOOKED
+                {
+                    b_have_available_project = true;                        
+                }
+                project.fields.JobNo.clone()                                
+            }).collect();
+
             if !b_have_available_project{
                     return 5;
             }
@@ -686,13 +691,13 @@ impl Quotation{
             version.fields.RequestApprovePrepareGoods = true;   
             
             let mut not_receive_payment = false;
-            let _ = version.list_quotation_ver_project.iter().map(|ver_project|
+            let _:Vec<()> = version.list_quotation_ver_project.iter().map(|ver_project|
             {
                 //预收款未到帐，需要审批
                 if  ver_project.fields.AmountPrePayment > &ver_project.fields.AmountPaymentCancelled + BigDecimal::from(1i64){
                     not_receive_payment = true;
                 }
-            });
+            }).collect();
             if not_receive_payment{
                 return 3;
             }
@@ -722,7 +727,7 @@ impl Quotation{
         else if version.fields.RequestApprovePrepareGoods && !version.fields.RequestApproveDelivery && !version.fields.DeliveryInstruction 
         {
             let mut error_code = 0;
-            let _ = version.list_quotation_ver_project.iter().map(|ver_project|
+            let _:Vec<_> = version.list_quotation_ver_project.iter().map(|ver_project|
             {
                 let project = unsafe{&mut *ver_project.project}; 
                 if project.fields2.Storage//只在以仓库做为周转方式的情况下计算
@@ -734,7 +739,7 @@ impl Quotation{
                     //     throw new ExceptionBusiness(ExceptionBusiness.cstrSalesDisableCancelPrepardGoodsAfterCreatePurchase, "已生成采购单，不能取消备货，如要取消请先删除采购单。");
 
                     //已发货不能取消备货
-                    let _ = ver_project.list_quotation_item.iter().map(|item|
+                    let _:Vec<_> = ver_project.list_quotation_item.iter().map(|item|
                     {
                         if item.fields.QtyMRPImported > BigDecimal::from(0i64) {
                             error_code = 4;
@@ -750,7 +755,7 @@ impl Quotation{
                             error_code = 7;
                             //throw new ExceptionBusiness(ExceptionBusiness.cstrSalesDisableCancelPrepardGoodsAfterCreateDelivery, "已发货，不能取消备货。");
                         }
-                    });                    
+                    }).collect();                    
                 }
                 else
                 {
@@ -760,7 +765,7 @@ impl Quotation{
                         //throw new ExceptionBusiness(ExceptionBusiness.cstrSalesDisableCancelPrepardGoodsAfterCreatePurchase, "已生成采购单，不能取消备货，如要取消请先删除采购单。");
                     }
                 }
-            });
+            }).collect();
 
             if error_code != 0
             {

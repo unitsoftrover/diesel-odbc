@@ -31,11 +31,12 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
         quotation1.save(conn);
         quotation_id = quotation1.fields.QuotationID;
 
-        // quotation1.create_contract(&user, conn);
-        // quotation1.calculate();
-        // quotation1.confirm(&user);
-        // quotation1.check(&user);
-        // quotation1.request_prepare_goods(&user);
+        quotation1.create_contract(&user, conn);
+        quotation1.calculate();
+        quotation1.confirm(&user);
+        quotation1.check(&user);
+        quotation1.save(conn);
+        quotation1.request_prepare_goods(&user);
         quotation1.save(conn);
 
         // quotation1.create_contract1(conn);

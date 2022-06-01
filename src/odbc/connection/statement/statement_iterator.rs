@@ -118,4 +118,8 @@ impl<'a> Field<'a, Odbc> for OdbcField<'a> {
         let val = self.bind.value();        
         val
     }
+
+    fn raw_value(&self)->Option<&'a [u8]>{
+        self.bind.raw_value()
+    }
 }
