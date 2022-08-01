@@ -1,5 +1,5 @@
-[workspace]
-members = ["src/data-model"]
+#[workspace]
+#members = ["src/data-model"]
 
 [package]
 name = "diesel-odbc"
@@ -30,7 +30,7 @@ doc = false
 [dependencies]
 byteorder = "1.0"
 bitflags = { version = "1.2.0", optional = false }
-#chrono = {version="0.4.19", path="D:/Rust/chrono", optional=true}
+#chrono = {version="0.4.19", path="d:/rust/chrono", optional=true}
 chrono = { git="https://github.com/chronotope/chrono", optional = true, default-features = false, features = ["clock", "std"] }
 
 libc = { version = "0.2.0", optional = true }
@@ -38,7 +38,7 @@ libc = { version = "0.2.0", optional = true }
 #mysqlclient-sys = { version = "0.2.0", optional = false}
 percent-encoding = { version = "2.1.0", optional = false }
 actix-web = "3"
-diesel = {path = "D:/Rust/diesel/diesel", features = ["mysql", "r2d2","chrono","numeric", "32-column-tables"] }
+diesel = {path = "../diesel/diesel", features = ["mysql", "r2d2","chrono","numeric", "32-column-tables"] }
 #diesel = {git = "https://github.com/unitsoftrover/diesel", branch="dev", features = ["mysql", "r2d2","chrono","numeric", "100-column-tables"] }
 dotenv = "0.15"
 env_logger = "0.7"
@@ -49,26 +49,26 @@ serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
-num-bigint = { version = ">=0.2.0, <0.4.0", optional = true }
+num-bigint = { version = "0.4.0", optional = true }
 num-traits = { version = "0.2.0", optional = true }
 num-integer = { version = "0.1.39", optional = true }
-bigdecimal = { version = ">=0.0.13, < 0.3.0", optional = true }
+bigdecimal = { version = "0.3.0", optional = true }
 
-odbc-sys = {version="0.8.2", path="D:/Rust/web/odbc-sys-0.8.2"}
-odbc-safe = {version="0.5.0", path="D:/Rust/web/odbc-safe-0.5.0"}
+odbc-sys = {version="0.8.2", path="../odbc-sys"}
+odbc-safe = {version="0.5.0", path="../odbc-safe"}
 log = "0.4.1"
 encoding_rs = "0.8.14"
 doc-comment = "0.3.1"
 url = "1.7"
 lazy_static = "1.4.0"
 cfg-if = "1.0.0"
-data-model = {version="1.0.0", path="src/data-model"}
+data_model = {version="1.0.0", path="src/data-model"}
 
 [dependencies.diesel_derives]
 version = "~2.0.0"
 #git = "https://github.com/unitsoftrover/diesel"
 #branch="dev"
-path = "D:/Rust/diesel/diesel_derives"
+path = "../diesel/diesel_derives"
 
 [dev-dependencies]
 #chrono = "0.4"

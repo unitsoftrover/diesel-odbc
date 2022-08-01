@@ -5,3 +5,7 @@ pub mod schema;
 
 #[macro_use]
 extern crate diesel;
+
+pub fn data_model_test()->bool{
+    return true;
+}

@@ -1,6 +1,4 @@
-/target
+target/
 *.rar
 *.zip
-Cargo.lock
-
 Cargo.lock

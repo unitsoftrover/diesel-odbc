@@ -1,4 +1,5 @@
 extern crate num_traits as traits;
+extern crate data_model;
 
 use traits::{FromPrimitive, ToPrimitive};
 use bigdecimal::BigDecimal;

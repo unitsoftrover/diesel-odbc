@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::schema::{users, quotation_x, quotation, quotation2, quotationver, quotationverproject, project, project2, quotationitem};
 use chrono::{NaiveDateTime, NaiveDate};
 use diesel::prelude::*;
+
 use bigdecimal::BigDecimal;
 use std::default::Default;
 
@@ -45,7 +46,7 @@ pub struct Company {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, PartialEq,Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable, AsChangeset, PartialEq,Default)]
 #[primary_key(QuotationNo)]
 #[table_name = "quotation_x"]
 pub struct QuotationX {
@@ -56,7 +57,7 @@ pub struct QuotationX {
     pub	QuotationNo	:	String	,
     pub	LeadSource	:	String	,
     pub	QuotationBy	:	String	,
-    // pub	CreateDate	:	NaiveDateTime,
+    pub	CreateDate	:	NaiveDateTime,
     pub	QuotationTo	:	String	,
     pub	AddressQuotation	:	String	,
     pub	CityQuotation	:	String	,
@@ -86,7 +87,7 @@ pub struct QuotationX {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, PartialEq,Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable, AsChangeset, PartialEq,Default)]
 #[primary_key(QuotationID)]
 #[table_name = "quotation"]
 pub struct QuotationA {
@@ -185,7 +186,7 @@ pub struct QuotationA {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable, AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "quotation2"]
@@ -249,7 +250,7 @@ pub struct Quotation2 {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable, AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "quotationver"]
@@ -280,7 +281,7 @@ pub struct QuotationVerA {
     pub	Other9	:	String	,
     pub	Other10	:	String	,
     pub	Currency	:	String	,
-    pub	TotalAmount	:	Option<BigDecimal>	,
+    pub	TotalAmount	:	BigDecimal,
     pub	AdditionalTerms	:	String	,
     pub	PaymentMethodCode	:	String	,
     pub	PaymentMethod	:	String	,
@@ -309,7 +310,7 @@ pub struct QuotationVerA {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable, AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationVerA, foreign_key = "QuotationID")]
 #[table_name = "quotationverproject"]
@@ -372,7 +373,7 @@ pub struct QuotationVerProjectA {
 
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable, AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "project"]
@@ -466,7 +467,7 @@ pub struct ProjectA {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable, AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID,ProjectNo)]
 #[belongs_to(QuotationA, foreign_key = "QuotationID")]
 #[table_name = "project2"]
@@ -518,7 +519,7 @@ pub struct Project2A {
 }
 
 #[allow(non_snake_case)]
-#[derive(Identifiable, Debug, Clone, Queryable, Insertable,AsChangeset, Associations, PartialEq, Default)]
+#[derive(Identifiable, Debug, Clone, Queryable, Insertable, AsChangeset, Associations, PartialEq, Default)]
 #[primary_key(QuotationID)]
 #[belongs_to(QuotationVerProjectA, foreign_key = "QuotationID")]
 #[table_name = "quotationitem"]
