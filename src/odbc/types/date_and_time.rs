@@ -121,7 +121,7 @@ impl FromSql<Timestamp, Odbc> for NaiveDateTime {
                 odbc_time.fraction as u32,
             )
         })
-        .unwrap_or(MIN_DATETIME.naive_utc());
+        .unwrap_or(DateTime::<Utc>::MIN_UTC.naive_utc());
         Ok(datetime)
         // .ok_or_else(|| format!("Cannot parse this date: {:?}", odbc_time).into())
     }
@@ -147,7 +147,7 @@ impl FromSql<Time, Odbc> for NaiveTime {
             odbc_time.minute as u32,
             odbc_time.second as u32,
         )
-        .unwrap_or(MIN_DATETIME.time());
+        .unwrap_or(DateTime::<Utc>::MIN_UTC.time());
         Ok(time)
         // .ok_or_else(|| format!("Unable to convert {:?} to chrono", odbc_time).into())
     }
@@ -176,7 +176,7 @@ impl FromSql<Date, Odbc> for NaiveDate {
             odbc_time.day as u32,
         )
         .unwrap_or_else(||{
-            let datetime = MIN_DATETIME.naive_utc();
+            let datetime = DateTime::<Utc>::MIN_UTC.naive_utc();
             NaiveDate::from_ymd(datetime.year(), datetime.month(), datetime.day())
         });       
         // .ok_or_else(|| format!("Unable to convert {:?} to chrono", odbc_time).into());

@@ -5,21 +5,13 @@
         "label": "build",
         "type": "shell",
         "command": "cargo",
+        "group": "build",
         "args": [
             "build"
         ],
         "problemMatcher": [
             "$msCompile"
         ]
-    }, 
-    {
-        "type": "cargo",
-        "subcommand": "check",
-        "problemMatcher": [
-            "$rustc"
-        ],
-        "group": "build",
-        "label": "Rust: cargo check - test_rust"
-    }
-    ] 
+    }    
+] 
 }

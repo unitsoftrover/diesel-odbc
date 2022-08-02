@@ -146,7 +146,6 @@ simple_clause!(
 
 fn main(){
     println!("test odbc");
-
     use schema::company::*;
     let select = ReturningClauseWithSelect(CompanyName);
 
