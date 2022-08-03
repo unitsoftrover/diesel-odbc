@@ -155,6 +155,7 @@ impl Quotation{
             current_version : 0 as *mut QuotationVer,
             status : Default::default(),
         };        
+        quotation.fields.IsSubmited = true;
 
         let quotation_ptr = &mut quotation as *mut Quotation;
 
@@ -547,8 +548,9 @@ impl Quotation{
             self.fields.SalesOrderNo = quota[0].SalesOrderNo.clone();
         }
 
-        for project in self.list_project.iter()
+        for mut project in self.list_project.iter_mut()
         {
+            project.fields.JobNo = self.fields.SalesOrderNo.clone();                        
             let str_sql = "update SalesProduct2Purchase set SalesOrderNo=(select JobNo from Project where QuotationID =".to_string() + &self.fields.QuotationID.to_string() + " and ProjectNo = " + &project.fields.ProjectNo.to_string() + ")"
                     + " where QuotationID=" + &self.fields.QuotationID.to_string() + " and ProjectNo=" + &project.fields.ProjectNo.to_string();
             conn.execute(&str_sql).unwrap();
