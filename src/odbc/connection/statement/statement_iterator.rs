@@ -9,13 +9,13 @@ use super::metadata::*;
 use diesel::row::*;
 use super::ColumnDescriptor;
 
-pub struct StatementIterator<'b, ST, T, S> {
-    stmt: StatementUse<'b, S>,
+pub struct StatementIterator<'b, ST, T> {
+    stmt: StatementUse<'b>,
     _marker: PhantomData<(ST, T)>,   
 }
 
-impl<'b, ST, T, S> StatementIterator<'b, ST, T, S> {
-    pub fn new(stmt: StatementUse<'b, S>) -> Self {
+impl<'b, ST, T> StatementIterator<'b, ST, T> {
+    pub fn new(stmt: StatementUse<'b>) -> Self {
         let st = StatementIterator {
             stmt: stmt,
             _marker: PhantomData            
@@ -24,7 +24,7 @@ impl<'b, ST, T, S> StatementIterator<'b, ST, T, S> {
     }
 }
 
-impl<'b, ST, T, S> Iterator for StatementIterator<'b, ST, T, S>
+impl<'b, ST, T> Iterator for StatementIterator<'b, ST, T>
 where
     T: FromSqlRow<ST,  Odbc>,
 {

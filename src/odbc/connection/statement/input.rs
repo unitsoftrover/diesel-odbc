@@ -4,7 +4,7 @@ use super::types::EncodedValue;
 use super::super::{ffi, Handle, Raii, Result, Return};
 use super::Statement;
 
-impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
+impl<'b, AC: AutocommitMode> Statement<AC> {
     /// Binds a parameter to a parameter marker in an SQL statement.
     ///
     /// # Result
@@ -33,39 +33,6 @@ impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
     /// # }
     /// ```
     pub fn bind_parameter<'c, T>(
-        mut self,
-        parameter_index: u16,
-        value: &'c T,
-    ) -> Result<Statement<S, R, AC>>
-    where
-        T: OdbcType<'c>,
-        T: ?Sized,
-        'b: 'c,
-    {
-        let ind = if value.value_ptr() == 0 as *const Self as ffi::SQLPOINTER {
-            ffi::SQL_NULL_DATA
-        } else {
-            value.column_size() as ffi::SQLLEN
-        };
-
-        let ind_ptr = self.param_ind_buffers.alloc(parameter_index as usize, ind);
-
-        //the result of value_ptr is changed per calling.
-        //binding and saving must have the same value.
-        let enc_value = value.encoded_value();
-
-        self.bind_input_parameter1(parameter_index, value, ind_ptr, &enc_value)
-            .into_result(&self)?;
-
-        // save encoded value to avoid memory reuse.
-        if enc_value.has_value() {
-            self.encoded_values.push(enc_value);
-        }
-
-        Ok(self)
-    }
-
-    pub fn bind_parameter1<'c, T>(
         &mut self,
         parameter_index: u16,
         value: &'c T,
@@ -87,7 +54,7 @@ impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
         //binding and saving must have the same value.
         let enc_value = value.encoded_value();
 
-        self.bind_input_parameter1(parameter_index, value, ind_ptr, &enc_value)
+        self.bind_input_parameter(parameter_index, value, ind_ptr, &enc_value)
             .into_result(self).unwrap();
 
         // save encoded value to avoid memory reuse.
@@ -98,11 +65,11 @@ impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
 
     /// Releasing all parameter buffers set by `bind_parameter`. This method consumes the statement
     /// and returns a new one those lifetime is no longer limited by the buffers bound.
-    pub fn reset_parameters(mut self) -> Result<Statement<S, R, AC>> {
+    pub fn reset_parameters(mut self) -> Result<bool> {
         self.param_ind_buffers.clear();
         self.encoded_values.clear();
-        self.reset_parameters1().into_result(&mut self)?;
-        Ok(Statement::with_raii(self.raii))
+        self.raii.reset_parameters().into_result(&mut self)?;
+        Ok(true)
     }
 
     /// Binds a buffer and an indicator to a column.
@@ -113,7 +80,7 @@ impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
         mut self,
         column_number: u16,
         value: &'c mut T
-    ) -> Result<Statement<S, R, AC>>
+    ) -> Result<Statement<AC>>
     where
         T: OdbcType<'c> + ?Sized,
         'b: 'c,
@@ -135,7 +102,7 @@ impl<'b, S, R, AC: AutocommitMode> Statement<S, R, AC> {
 }
 
 impl Raii<ffi::Stmt> {
-    fn bind_input_parameter<'c, T>(
+    pub fn bind_input_parameter<'c, T>(
         &mut self,
         parameter_index: u16,
         value: &'c T,
@@ -174,7 +141,7 @@ impl Raii<ffi::Stmt> {
         }
     }
 
-    fn reset_parameters(&mut self) -> Return<()> {
+    pub fn reset_parameters(&mut self) -> Return<()> {
         match unsafe { ffi::SQLFreeStmt(self.handle(), ffi::SQL_RESET_PARAMS) } {
             ffi::SQL_SUCCESS => Return::Success(()),
             ffi::SQL_SUCCESS_WITH_INFO => Return::SuccessWithInfo(()),
@@ -183,7 +150,7 @@ impl Raii<ffi::Stmt> {
         }
     }
 
-    fn bind_col<'c, T>(
+    pub fn bind_col<'c, T>(
         &mut self,
         col_index: u16,
         value: &'c T,

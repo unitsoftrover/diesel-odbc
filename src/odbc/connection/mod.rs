@@ -36,7 +36,7 @@ use diesel::query_dsl::load_dsl::CompatibleType;
 //#[derive(Debug)]
 pub struct RawConnection<'env, AC: AutocommitMode> {
     // environment : Environment<Version3>,    
-    statement_cache: StatementCache<crate::odbc::Odbc, Statement<Prepared, NoResult, AC>>,
+    statement_cache: StatementCache<crate::odbc::Odbc, Statement<AC>>,
     safe : safe::Connection<'env, AC>,    
     transaction_manager: AnsiTransactionManager,
 }
@@ -89,8 +89,8 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         let stmt = Statement::with_parent(self).unwrap();
         let stmt = stmt.exec_direct(query).unwrap();
         match stmt{
-            Data(stmt)=>Ok(stmt.affected_row_count().unwrap() as usize),
-            NoData(stmt)=>Ok(stmt.affected_row_count().unwrap() as usize)
+            Data(stmt)=>Ok(stmt.affected_row_count().into_result(self).unwrap() as usize),
+            NoData(stmt)=>Ok(stmt.affected_row_count().into_result(self).unwrap() as usize)
         }
     }
 
@@ -110,28 +110,44 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
         Odbc::row_metadata(&mut (), &mut types);
         let metadata = stmt.metadata().unwrap();
         let mut output_binds = statement::Binds::from_output_types(types, &metadata);
-        let stmt = stmt.execute_statement(&metadata, &mut output_binds).unwrap();        
-        match stmt{
-            ResultSetState::Data(mut stmt)=>{
-                let metadata = stmt.metadata().unwrap();
-                let statement_use = StatementUse::new(&mut stmt, &mut output_binds, &metadata);
-                let iter = StatementIterator::new(statement_use);                
-                let ret = iter.collect::<QueryResult<Vec<U>>>();
-                while let Ok(status) = stmt.get_more_results(){
-                    if status == 0{
-                        break;
-                    }
-                }
+        stmt.execute_statement(&metadata, &mut output_binds).unwrap();        
+        let stmt : &mut Statement<_> = &mut stmt;
 
-                return ret;
-            },
-            ResultSetState::NoData(_stmt)=>{
-                // let statement_use = StatementUse::new(&mut stmt);
-                // let iter = StatementIterator::new(statement_use);
-                // iter.collect::<QueryResult<Vec<U>>>()
-                panic!("no data.")
+        let metadata = stmt.metadata().unwrap();
+        let statement_use = StatementUse::new(&mut *stmt, &mut output_binds, &metadata);
+        let iter = StatementIterator::new(statement_use);                
+        let ret = iter.collect::<QueryResult<Vec<U>>>();
+       
+        while let Ok(status) = stmt.get_more_results(){
+            if status == 0{
+                break;
             }
-        }                    
+        }
+        return ret;
+
+        // panic!("xxx");
+        // match stmt{
+        //     ResultSetState::Data(mut stmt)=>{
+        //         let metadata = stmt.metadata().unwrap();
+        //         let statement_use = StatementUse::new(&mut stmt, &mut output_binds, &metadata);
+        //         let iter = StatementIterator::new(statement_use);                
+        //         let ret = iter.collect::<QueryResult<Vec<U>>>();
+
+        //         while let Ok(status) = stmt.get_more_results(){
+        //             if status == 0{
+        //                 break;
+        //             }
+        //         }
+
+        //         return ret;
+        //     },
+        //     ResultSetState::NoData(_stmt)=>{
+        //         // let statement_use = StatementUse::new(&mut stmt);
+        //         // let iter = StatementIterator::new(statement_use);
+        //         // iter.collect::<QueryResult<Vec<U>>>()
+        //         panic!("no data.")
+        //     }
+        // }                    
     }
 
     #[doc(hidden)]
@@ -139,11 +155,11 @@ impl<'env> Connection for RawConnection<'env, safe::AutocommitOn> {
     where       
         T: QueryFragment<Self::Backend> + QueryId,
     {        
-        let stmt = self.prepare_query(source)?;       
-        let stmt = stmt.execute().unwrap();
-        match stmt{
-            ResultSetState::Data(stmt)=>{
-                Ok(stmt.affected_row_count().unwrap() as usize)
+        let mut stmt = self.prepare_query(source)?;       
+        let result = stmt.execute().unwrap();
+        match result{
+            true=>{
+                Ok(stmt.affected_row_count().into_result(self).unwrap() as usize)
             }
             _ =>{Ok(0)}
         }
@@ -264,8 +280,7 @@ unsafe impl<'env, AC: AutocommitMode> safe::Handle for RawConnection<'env, AC> {
 }
 
 impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
-    fn prepare_query<T>(&mut self, source: &T) -> QueryResult<MaybeCached<Statement<Prepared, NoResult, AC>>>
-    // fn prepare_query<T>(&self, source: &T) -> QueryResult<Statement<Prepared, NoResult, AC>>
+    fn prepare_query<T>(&mut self, source: &T) -> QueryResult<MaybeCached<Statement<AC>>>
     where
         T: QueryFragment<crate::odbc::Odbc> + QueryId,            
     {        
@@ -282,8 +297,8 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
             source.to_sql(&mut query_builder)?;
             let sql = query_builder.finish();
 
-            let stmt = Statement::with_parent(self).unwrap();     
-            let mut stmt = stmt.prepare(sql).unwrap(); 
+            let mut stmt = Statement::with_parent(self).unwrap();     
+            let _result = stmt.prepare(sql).unwrap(); 
             let mut bind_collector = RawBytesBindCollector::new();
             source.collect_binds(&mut bind_collector, &mut ())?;
             let binds = bind_collector
@@ -300,50 +315,50 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
                             odbc_sys::SqlDataType::SQL_INTEGER=>{
                                 unsafe {                                
                                     let para = bind.bytes.as_ptr() as *const i32;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },
                             odbc_sys::SqlDataType::SQL_SMALLINT=>{
                                 unsafe {                                
                                     let para = bind.bytes.as_ptr() as *const i16;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },
                             odbc_sys::SqlDataType::SQL_EXT_TINYINT=>{
                                 unsafe {                                
                                     let para = bind.bytes.as_ptr() as *const i8;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },
                             odbc_sys::SqlDataType::SQL_EXT_BIGINT=>{
                                 unsafe {                                
                                     let para = bind.bytes.as_ptr() as *const i64;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },
                             odbc_sys::SqlDataType::SQL_EXT_BIT=>{
                                 unsafe {                                
                                     let para = bind.bytes.as_ptr() as *const bool;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },
                             odbc_sys::SqlDataType::SQL_DECIMAL | odbc_sys::SqlDataType::SQL_NUMERIC  
                             =>{                            
                                 let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-                                stmt.bind_parameter1(i,  &str);
+                                stmt.bind_parameter(i,  &str);
                             },
                             odbc_sys::SqlDataType::SQL_FLOAT | odbc_sys::SqlDataType::SQL_DOUBLE
                             =>{
                                 unsafe {
                                     let para = bind.bytes.as_ptr() as *const f64;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },
                             odbc_sys::SqlDataType::SQL_REAL
                             =>{
                                 unsafe {
                                     let para = bind.bytes.as_ptr() as *const f32;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },
                             odbc_sys::SqlDataType::SQL_VARCHAR
@@ -351,14 +366,14 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
                             | odbc_sys::SqlDataType::SQL_EXT_LONGVARCHAR
                             =>{                            
                                 let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-                                stmt.bind_parameter1(i,  &str);
+                                stmt.bind_parameter(i,  &str);
                             },
                             odbc_sys::SqlDataType::SQL_EXT_WVARCHAR
                             | odbc_sys::SqlDataType::SQL_EXT_WCHAR
                             | odbc_sys::SqlDataType::SQL_EXT_WLONGVARCHAR
                             =>{
                                 let str = String::from_utf8(bind.bytes.to_vec()).unwrap();
-                                stmt.bind_parameter1(i,  &str);
+                                stmt.bind_parameter(i,  &str);
                             },
                             odbc_sys::SqlDataType::SQL_DATETIME                                                
                             =>{
@@ -370,21 +385,21 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
                                     {                                                
                                         para = 0 as *mut ffi::SQL_TIMESTAMP_STRUCT;
                                     }
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },
                             odbc_sys::SqlDataType::SQL_DATE                                                
                             =>{                            
                                 unsafe {
                                     let para = bind.bytes.as_ptr() as *const ffi::SQL_DATE_STRUCT;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             }, 
                             odbc_sys::SqlDataType::SQL_TIME                                                
                             =>{                            
                                 unsafe {
                                     let para = bind.bytes.as_ptr() as *const ffi::SQL_TIME_STRUCT;                                
-                                    stmt.bind_parameter1(i,  &(*para));
+                                    stmt.bind_parameter(i,  &(*para));
                                 }
                             },              
                             _=>{
@@ -404,10 +419,10 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         }
     }
 
-    pub fn prepare_query1(&self, source: &String) -> Statement<Prepared, NoResult, AC>
+    pub fn prepare_query1(&self, source: &String) -> Statement<AC>
     {        
-        let stmt = Statement::with_parent(self).unwrap();
-        let stmt = stmt.prepare(source).unwrap();       
+        let mut stmt = Statement::with_parent(self).unwrap();
+        stmt.prepare(source).unwrap();       
         stmt 
     }
 
@@ -416,8 +431,8 @@ impl<'env, AC: AutocommitMode> RawConnection<'env, AC> {
         let stmt = Statement::with_parent(self).unwrap();
         let stmt = stmt.exec_direct(query).unwrap();
         match stmt{
-            Data(stmt)=>Ok(stmt.affected_row_count().unwrap() as usize),
-            NoData(stmt)=>Ok(stmt.affected_row_count().unwrap() as usize)
+            Data(stmt)=>Ok(stmt.affected_row_count().into_result(self).unwrap() as usize),
+            NoData(stmt)=>Ok(stmt.affected_row_count().into_result(self).unwrap() as usize)
         }
     }
 

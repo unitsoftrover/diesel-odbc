@@ -1,11 +1,11 @@
 use super::super::{ffi, Raii, Return, Handle};
-use super::{ColumnDescriptor, Statement, Result, Prepared, Allocated, NoResult, ResultSetState};     
+use super::{Statement, Result};     
 use odbc_safe::AutocommitMode;
 use diesel::result::*;
 
 pub use super::types::{SqlDate, SqlTime, SqlSsTime2, SqlTimestamp, EncodedValue};
 
-impl<AC: AutocommitMode> Statement<Allocated, NoResult, AC> {
+impl<AC: AutocommitMode> Statement<AC> {
     /// Prepares a statement for execution. Executing a prepared statement is faster than directly
     /// executing an unprepared statement, since it is already compiled into an Access Plan. This
     /// makes preparing statement a good idea if you want to repeatedly execute a query with a
@@ -41,70 +41,31 @@ impl<AC: AutocommitMode> Statement<Allocated, NoResult, AC> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn prepare(mut self, sql_text: &str) -> QueryResult<Statement<Prepared, NoResult, AC>> {
-        match self.prepare1(sql_text).into_result(&mut self){
-            Ok(_stmt) => Ok(Statement::with_raii(self.raii)),
+    pub fn prepare(&mut self, sql_text: &str) -> QueryResult<bool> {
+        match self.raii.prepare(sql_text).into_result(self){
+            Ok(_stmt) => Ok(true),
             Err(_stmt) => Err(Error::NotFound)
         }       
     }
-
-    /// Prepares a statement for execution. Executing a prepared statement is faster than directly
-    /// executing an unprepared statement, since it is already compiled into an Access Plan. This
-    /// makes preparing statement a good idea if you want to repeatedly execute a query with a
-    /// different set of parameters and care about performance.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use odbc::*;
-    /// # fn doc() -> Result<()>{
-    /// let env = create_environment_v3().map_err(|e| e.unwrap())?;
-    /// let conn = env.connect("TestDataSource", "", "")?;
-    /// let stmt = Statement::with_parent(&conn)?;
-    /// // need encode_rs crate
-    /// // let mut stmt = stmt.prepare_bytes(&GB2312.encode("select '你好' as hello").0)?;
-    ///
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn prepare_bytes(mut self, bytes: &[u8]) -> Result<Statement<Prepared, NoResult, AC>> {
-        self.prepare_byte1(bytes).into_result(&mut self)?;
-        Ok(Statement::with_raii(self.raii))
-    }
+    
 }
 
-impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
-    /// The number of columns in a result set
-    ///
-    /// Can be called successfully only when the statement is in the prepared, executed, or
-    /// positioned state. If the statement does not return columns the result will be 0.
-    pub fn num_result_cols(&self) -> Result<i16> {
-        self.num_result_cols1().into_result(self)
-    }
-
-    /// Returns description struct for result set column with a given index. Note: indexing is starting from 1.
-    pub fn describe_col(&self, idx: u16) -> Result<ColumnDescriptor> {
-        self.describe_col1(idx).into_result(self)
-    }
-
-    pub fn affected_row_count(&self) -> Result<ffi::SQLLEN> {
-        self.affected_row_count1().into_result(self)        
-    }
+impl<AC: AutocommitMode> Statement<AC> {
 
     /// Executes a prepared statement.
-    pub fn execute(&self) -> Result<ResultSetState<Prepared, AC>> {
-        if self.execute1().into_result(self)? {
-            let num_cols = self.num_result_cols1().into_result(self)?;
+    pub fn execute(&mut self) -> Result<bool> {
+        if self.raii.execute().into_result(self)? {
+            let num_cols = self.num_result_cols()?;
             if num_cols > 0 {
-                Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())))
+                Ok(true)
             } else {
-                Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
+                Ok(false)
             }
-        } else { Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))            
+        } else { Ok(false)            
         }
     }
 
-    pub fn execute_statement(&mut self, meta: &super::StatementMetadata, binds: &mut super::Binds) -> Result<ResultSetState<Prepared, AC>> {
+    pub fn execute_statement(&mut self, meta: &super::StatementMetadata, binds: &mut super::Binds) -> Result<bool> {
         for i in 1..= binds.data.len() as u16 {
             let bind = &mut binds.data[i as usize - 1];
             match bind.tpe{
@@ -199,11 +160,11 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
             };                            
         };
 
-        if self.execute1().into_result(self)? {           
+        if self.raii.execute().into_result(self)? {           
             let meta_cols = binds.len() as i16;
             loop{
 
-                if self.num_result_cols1().into_result(self)? == meta_cols{
+                if self.num_result_cols()? == meta_cols{
 
                     let mut cols_match = true;
                     let fields = meta.fields(); 
@@ -215,20 +176,20 @@ impl<AC: AutocommitMode> Statement<Prepared, NoResult, AC> {
                         }
                     }
                     if cols_match{
-                        return Ok(ResultSetState::Data(Statement::with_raii(self.raii.clone())));
+                        return Ok(true);
                     }
                 }
                 else{
                     if let Ok(status) = self.get_more_results(){                                    
                         if status == 0 {                        
-                            return Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())));
+                            return Ok(false);
                         }
                     }
                 }
             }
 
         } else {
-            Ok(ResultSetState::NoData(Statement::with_raii(self.raii.clone())))
+            Ok(false)
         }
     }
 }

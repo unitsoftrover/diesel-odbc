@@ -4,7 +4,7 @@ use diesel::dsl::*;
 use chrono::{NaiveDateTime};
 use bigdecimal::*;
 
-use diesel_odbc::connection::statement::{Statement, ResultSetState};
+// use diesel_odbc::connection::statement::{Statement, ResultSetState};
 use diesel_odbc::connection::RawConnection;
 use diesel_odbc::Odbc;
 
@@ -32,53 +32,53 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
 
     
 
-    {
-        let stmt = Statement::with_parent(conn).unwrap();
-        let stmt = stmt.prepare("select count(*) from company").unwrap();        
-        let stmt = stmt.execute().unwrap();    
+    // {
+    //     let stmt = Statement::with_parent(conn).unwrap();
+    //     let stmt = stmt.prepare("select count(*) from company").unwrap();        
+    //     let stmt = stmt.execute().unwrap();    
 
-        match stmt{
-            ResultSetState::Data(mut st)=>{
-                // let row_count = st.affected_row_count().unwrap();
-                // println!("row count: {}", row_count);
+    //     match stmt{
+    //         ResultSetState::Data(mut st)=>{
+    //             // let row_count = st.affected_row_count().unwrap();
+    //             // println!("row count: {}", row_count);
 
-                if let Some(mut cursor) = st.fetch().unwrap(){
-                    if let Some(count) = cursor.get_data(1).unwrap() as Option<i64>{
-                        println!("count:{}", count);
-                    }
+    //             if let Some(mut cursor) = st.fetch().unwrap(){
+    //                 if let Some(count) = cursor.get_data(1).unwrap() as Option<i64>{
+    //                     println!("count:{}", count);
+    //                 }
 
-                    // let row_count = st.affected_row_count().unwrap();
-                    // println!("row count2: {}", row_count);
+    //                 // let row_count = st.affected_row_count().unwrap();
+    //                 // println!("row count2: {}", row_count);
 
-                }
-            },
-            ResultSetState::NoData(_st)=>{},
-        }
-    }
+    //             }
+    //         },
+    //         ResultSetState::NoData(_st)=>{},
+    //     }
+    // }
 
 
-    {     
-        let stmt = Statement::with_parent(conn).unwrap();
-        let stmt = stmt.prepare("select top 1 CompanyID,CompanyCode,CompanyName from company").unwrap();                   
-        let stmt = stmt.execute().unwrap();       
-        match stmt{
-            ResultSetState::Data(mut st)=>{
-                while let Some(mut cursor) = st.fetch().unwrap(){                    
+    // {     
+    //     let stmt = Statement::with_parent(conn).unwrap();
+    //     let stmt = stmt.prepare("select top 1 CompanyID,CompanyCode,CompanyName from company").unwrap();                   
+    //     let stmt = stmt.execute().unwrap();       
+    //     match stmt{
+    //         ResultSetState::Data(mut st)=>{
+    //             while let Some(mut cursor) = st.fetch().unwrap(){                    
 
-                    if let Some(val) = cursor.get_data(1).unwrap() as Option<i64>{
-                        println!("CompanyID:{}", val);
-                    }
-                    if let Some(val) = cursor.get_data(2).unwrap() as Option<String>{                    
-                        println!("Company Code:{}", val);
-                    }
-                    if let Some(val) = cursor.get_data(3).unwrap() as Option<String>{
-                        println!("Company Name:{}", val);
-                    }                                     
-                }
-            },
-            ResultSetState::NoData(_st)=>{},
-        }    
-    }
+    //                 if let Some(val) = cursor.get_data(1).unwrap() as Option<i64>{
+    //                     println!("CompanyID:{}", val);
+    //                 }
+    //                 if let Some(val) = cursor.get_data(2).unwrap() as Option<String>{                    
+    //                     println!("Company Code:{}", val);
+    //                 }
+    //                 if let Some(val) = cursor.get_data(3).unwrap() as Option<String>{
+    //                     println!("Company Name:{}", val);
+    //                 }                                     
+    //             }
+    //         },
+    //         ResultSetState::NoData(_st)=>{},
+    //     }    
+    // }
 
     use super::schema::company::dsl::*;
     // let mut query_builder = odbc::OdbcQueryBuilder::new();    
@@ -176,19 +176,19 @@ pub fn test<'env>(conn : &mut RawConnection<'env, AutocommitOn>)
     // .load::<Company>(conn).unwrap();
     // println!("company list:{:?}", company_list);
 
-    let stmt = conn.prepare_query1(&"SELECT CompanyName FROM company where CompanyID=1 ORDER BY CompanyCode".to_owned());
-    if let Ok(rs) = stmt.execute(){
-        match rs {
-            ResultSetState::Data(mut st)=>{
-                let mut cur = st.fetch().unwrap().unwrap();
-                let company_name:String = cur.get_data(1).unwrap().unwrap();
-                println!("company name:{:?}", company_name);
-            },
-            ResultSetState::NoData(_st)=>{
+    // let stmt = conn.prepare_query1(&"SELECT CompanyName FROM company where CompanyID=1 ORDER BY CompanyCode".to_owned());
+    // if let Ok(rs) = stmt.execute(){
+    //     match rs {
+    //         ResultSetState::Data(mut st)=>{
+    //             let mut cur = st.fetch().unwrap().unwrap();
+    //             let company_name:String = cur.get_data(1).unwrap().unwrap();
+    //             println!("company name:{:?}", company_name);
+    //         },
+    //         ResultSetState::NoData(_st)=>{
 
-            }
-        }        
-    }
+    //         }
+    //     }        
+    // }
 
 
 }

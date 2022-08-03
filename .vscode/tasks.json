@@ -4,10 +4,10 @@
     {
         "label": "build",
         "type": "shell",
-        "command": "cargo",
+        "command": "cls;",
         "group": "build",
         "args": [
-            "build"
+            "cargo", "build"
         ],
         "problemMatcher": [
             "$msCompile"

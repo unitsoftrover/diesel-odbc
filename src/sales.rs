@@ -177,6 +177,7 @@ impl Quotation{
             status : Default::default(),
         };
         version.fields.VersionNo = 1;
+        quotation.fields.CurrentVersion = Some(1);
 
         quotation.list_quotation_ver.push(version);
         let version = quotation.list_quotation_ver.get_mut(0).unwrap();
