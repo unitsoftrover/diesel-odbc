@@ -42,6 +42,7 @@ async fn get_user(
             eprintln!("{}", e);
             HttpResponse::InternalServerError().finish()
         })?;
+    // let user: Option<models::User> = None;
 
     if let Some(user) = user {
         Ok(HttpResponse::Ok().json(user))
@@ -81,7 +82,8 @@ async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
     // set up database connection pool
-    let connspec = std::env::var("DATABASE_URL").expect("DATABASE_URL");
+    // let connspec = std::env::var("DATABASE_URL").expect("DATABASE_URL");
+    let connspec = "driver={sql server};server=192.168.1.8;database=UnitsoftERP_DEV;uid=main;pwd=unitsoft_main;";
     let manager = ConnectionManager::<RawConnection<safe::AutocommitOn>>::new(connspec);
     let pool = r2d2::Pool::builder()
         .build(manager) 

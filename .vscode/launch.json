@@ -1,12 +1,13 @@
 { 
     "version": "0.2.0", 
     "configurations": [ 
+
         { 
             "name": "(Windows) 启动", 
             "preLaunchTask": "build", 
             "type": "cppvsdbg", 
             "request": "launch", 
-            "program": "${workspaceFolder}/target/debug/${workspaceFolderBasename}.exe", 
+            "program": "${workspaceFolder}/target/debug/main_odbc.exe", 
             "args": [], 
             "stopAtEntry": false, 
             "cwd": "${workspaceFolder}", 

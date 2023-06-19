@@ -64,18 +64,18 @@ lazy_static = "1.4.0"
 cfg-if = "1.0.0"
 data_model = {version="1.0.0", path="src/data-model"}
 
-[dependencies.diesel_derives]
-version = "~2.0.0"
-#git = "https://github.com/unitsoftrover/diesel"
-#branch="dev"
-path = "../diesel/diesel_derives"
+# [dependencies.diesel_derives]
+# version = "~2.0.0"
+# #git = "https://github.com/unitsoftrover/diesel"
+# #branch="dev"
+# path = "../diesel/diesel_derives"
 
 [dev-dependencies]
 #chrono = "0.4"
 env_logger = "0.7"
 
 [features]
-default = ["diesel_derives/mysql", "chrono", "numeric", "odbc"]
+default = ["chrono", "numeric", "odbc"]#"diesel_derives/mysql", 
 numeric = ["bigdecimal", "num-bigint", "num-traits", "num-integer"]
 odbc = []
 postgres = []

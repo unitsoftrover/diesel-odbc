@@ -597,7 +597,6 @@ dependencies = [
  "chrono",
  "data_model",
  "diesel",
- "diesel_derives",
  "doc-comment",
  "dotenv",
  "encoding_rs",

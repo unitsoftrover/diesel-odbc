@@ -42,6 +42,7 @@ pub struct Company {
     pub TestBigInt : i64, 
     pub TestBin : Vec<u8>,
     pub CreditInstruction : String,
+    
 }
 
 

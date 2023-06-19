@@ -8,6 +8,7 @@ use bigdecimal::*;
 use diesel_odbc::connection::RawConnection;
 use diesel_odbc::Odbc;
 
+
 use super::models::*;
 use super::safe::*;
 
